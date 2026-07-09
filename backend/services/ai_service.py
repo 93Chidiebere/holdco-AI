@@ -3,6 +3,9 @@ import json
 import google.generativeai as genai
 from typing import Dict, List, Any
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Ensure you have your Gemini API key set in the environment variables
 # e.g., os.environ["GEMINI_API_KEY"] = "your-api-key"

@@ -11,19 +11,38 @@ const getAuthHeaders = () => {
 };
 
 // Generic fetcher
-const fetcher = async (url: string, options?: RequestInit) => {
+export const fetcher = async (url: string, options?: RequestInit) => {
+  const headers: any = {
+    ...getAuthHeaders(),
+    ...options?.headers,
+  };
+  
+  // If sending FormData, browser must set Content-Type with boundary automatically
+  if (options?.body instanceof FormData) {
+    delete headers["Content-Type"];
+  }
+
   const res = await fetch(url, {
     ...options,
-    headers: {
-      ...getAuthHeaders(),
-      ...options?.headers,
-    },
+    headers,
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
     throw new Error(error.detail || `API error: ${res.status}`);
   }
   return res.json();
+};
+
+export const api = {
+  get: (url: string, options?: RequestInit) => fetcher(url, { ...options, method: 'GET' }).then(data => ({ data })),
+  post: (url: string, body?: any, options?: RequestInit) => {
+    const isFormData = body instanceof FormData;
+    return fetcher(url, {
+      ...options,
+      method: 'POST',
+      body: isFormData ? body : (body ? JSON.stringify(body) : undefined)
+    }).then(data => ({ data })); // wrap in {data} to match axios-like response expected by my code
+  }
 };
 
 // Hooks for Subsidiaries

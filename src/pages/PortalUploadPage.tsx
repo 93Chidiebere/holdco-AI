@@ -19,7 +19,7 @@ export default function PortalUploadPage() {
   useEffect(() => {
     const verifyToken = async () => {
       try {
-        const response = await api.get(`/portal/verify/${token}`);
+        const response = await api.get(`/api/portal/verify/${token}`);
         setIsValid(response.data.valid);
         setSubsidiaryName(response.data.subsidiary_name);
       } catch (error) {
@@ -48,7 +48,7 @@ export default function PortalUploadPage() {
     formData.append("file", file);
 
     try {
-      const response = await api.post(`/portal/upload/${token}`, formData, {
+      const response = await api.post(`/api/portal/upload/${token}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

@@ -47,7 +47,7 @@ export default function SubsidiaryDetailPage() {
   const handleGenerateLink = async () => {
     setIsGenerating(true);
     try {
-      const response = await api.post('/portal/generate-token', { subsidiary_id: sub.id });
+      const response = await api.post('/api/portal/generate-token', { subsidiary_id: sub.id });
       const link = `${window.location.origin}/portal/${response.data.token}`;
       setGeneratedLink(link);
       toast.success("Secure upload link generated");
