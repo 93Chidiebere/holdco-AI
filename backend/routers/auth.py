@@ -13,6 +13,14 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
+    hc_id = user.holding_company_id
+    if user.company_name:
+        # Create new holding company
+        hc = models.HoldingCompany(name=user.company_name)
+        db.add(hc)
+        db.flush() # flush to get the hc.id
+        hc_id = hc.id
+    
     hashed_password = auth.get_password_hash(user.password)
     
     db_user = models.User(
@@ -21,7 +29,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
         name=user.name,
         role=user.role,
         avatar=user.avatar,
-        holding_company_id=user.holding_company_id
+        holding_company_id=hc_id
     )
     db.add(db_user)
     db.commit()

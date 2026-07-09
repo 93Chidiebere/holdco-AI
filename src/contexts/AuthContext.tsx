@@ -74,9 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = async (name: string, email: string, password: string, companyName: string, role: User["role"] = "admin"): Promise<boolean> => {
     try {
-      // Create holding company (Mock logic for now, should ideally be an API call)
-      // For this step, we just pass holding_company_id or assume backend handles it.
-      // We will send standard user create data to backend.
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -85,16 +82,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name,
           password,
           role,
-          holding_company_id: "hc-" + Date.now() // Ideally created first via /api/platform
+          company_name: companyName
         })
       });
 
-      if (!res.ok) return false;
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Signup failed:", errorData);
+        alert(errorData.detail || "Signup failed");
+        return false;
+      }
       
       // Auto login after signup
       return await login(email, password);
     } catch (e) {
       console.error(e);
+      alert("Network error during signup");
       return false;
     }
   };
