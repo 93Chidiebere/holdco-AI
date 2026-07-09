@@ -1,17 +1,12 @@
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockSubsidiaries, mockRevenueData, mockKPIData, mockInsights, mockRecommendations } from "@/data/mockData";
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, AlertTriangle, Building2, Brain, ArrowUpRight } from "lucide-react";
+import { mockRevenueData } from "@/data/mockData";
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, AlertTriangle, Building2, Brain, ArrowUpRight, Database } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { Link } from "react-router-dom";
-
-const portfolioStats = [
-  { label: "Total Revenue", value: "₦2.87B", change: "+12.4%", trend: "up" as const, icon: DollarSign },
-  { label: "Portfolio ROACE", value: "15.7%", change: "+2.1%", trend: "up" as const, icon: BarChart3 },
-  { label: "Active Subsidiaries", value: "5", change: "0", trend: "flat" as const, icon: Building2 },
-  { label: "Active Alerts", value: "3", change: "+1", trend: "down" as const, icon: AlertTriangle },
-];
+import { useSubsidiaries, useKPIs, useInsights, useSeedData } from "@/hooks/useApi";
+import { Button } from "@/components/ui/button";
 
 const severityColors: Record<string, string> = {
   low: "bg-info/10 text-info border-info/20",
@@ -21,13 +16,45 @@ const severityColors: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  const { data: subsidiaries = [], isLoading: isLoadingSubs } = useSubsidiaries();
+  const { data: kpis = [] } = useKPIs();
+  const { data: insights = [] } = useInsights();
+  const { mutate: seedData, isPending: isSeeding } = useSeedData();
+
+  const portfolioStats = [
+    { label: "Total Revenue", value: "₦2.87B", change: "+12.4%", trend: "up" as const, icon: DollarSign },
+    { label: "Portfolio ROACE", value: "15.7%", change: "+2.1%", trend: "up" as const, icon: BarChart3 },
+    { label: "Active Subsidiaries", value: subsidiaries.length.toString(), change: "0", trend: "flat" as const, icon: Building2 },
+    { label: "Active Alerts", value: insights.filter((i: any) => i.severity === 'high' || i.severity === 'critical').length.toString(), change: "+1", trend: "down" as const, icon: AlertTriangle },
+  ];
+
+  const processedKPIs = subsidiaries.map((sub: any) => {
+    const subKpis = kpis.filter((k: any) => k.subsidiary_id === sub.id);
+    const roace = subKpis.find((k: any) => k.metric_name === 'roace')?.metric_value || 0;
+    const revGrowth = subKpis.find((k: any) => k.metric_name === 'revenue_growth')?.metric_value || 0;
+    return {
+      subsidiary: sub.name,
+      industry: sub.industry,
+      roace: roace,
+      revenue_growth: revGrowth
+    };
+  });
+
   return (
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Executive Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Portfolio-wide performance overview</p>
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Executive Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Portfolio-wide performance overview</p>
+          </div>
+          {subsidiaries.length === 0 && !isLoadingSubs && (
+            <Button onClick={() => seedData()} disabled={isSeeding} variant="default" className="gap-2">
+              <Database className="w-4 h-4" />
+              {isSeeding ? "Seeding Data..." : "Seed Dummy Data"}
+            </Button>
+          )}
         </div>
 
         {/* Stats Cards */}
@@ -96,7 +123,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={mockKPIData} layout="vertical">
+                  <BarChart data={processedKPIs} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 18%)" />
                     <XAxis type="number" stroke="hsl(220, 10%, 55%)" fontSize={12} />
                     <YAxis type="category" dataKey="subsidiary" stroke="hsl(220, 10%, 55%)" fontSize={11} width={90} />
@@ -121,15 +148,14 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {mockKPIData.sort((a, b) => b.roace - a.roace).map((kpi, i) => {
-                  const sub = mockSubsidiaries.find(s => s.name.startsWith(kpi.subsidiary.split(" ")[0]));
+                {processedKPIs.sort((a: any, b: any) => b.roace - a.roace).map((kpi: any, i: number) => {
                   return (
                     <div key={kpi.subsidiary} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                       <div className="flex items-center gap-3">
                         <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">{i + 1}</span>
                         <div>
                           <p className="text-sm font-medium">{kpi.subsidiary}</p>
-                          <p className="text-xs text-muted-foreground">{sub?.industry}</p>
+                          <p className="text-xs text-muted-foreground">{kpi.industry}</p>
                         </div>
                       </div>
                       <div className="text-right">
@@ -157,18 +183,21 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {mockInsights.slice(0, 4).map((insight) => (
-                  <div key={insight.id} className="p-3 rounded-lg bg-muted/50 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-medium leading-tight">{insight.title}</p>
-                      <Badge variant="outline" className={`text-[10px] shrink-0 ${severityColors[insight.severity]}`}>
-                        {insight.severity}
-                      </Badge>
+                {insights.slice(0, 4).map((insight: any) => {
+                  const sub = subsidiaries.find((s: any) => s.id === insight.related_subsidiary_id);
+                  return (
+                    <div key={insight.id} className="p-3 rounded-lg bg-muted/50 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium leading-tight">{insight.title}</p>
+                        <Badge variant="outline" className={`text-[10px] shrink-0 ${severityColors[insight.severity]}`}>
+                          {insight.severity}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{insight.description}</p>
+                      <p className="text-[10px] text-muted-foreground">{sub?.name}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{insight.description}</p>
-                    <p className="text-[10px] text-muted-foreground">{insight.subsidiary_name}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

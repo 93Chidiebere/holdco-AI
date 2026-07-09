@@ -6,11 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { mockSubsidiaries, mockKPIData } from "@/data/mockData";
 import { FlaskConical, ArrowRightLeft, TrendingUp, TrendingDown, RotateCcw } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { usePermissions } from "@/hooks/usePermissions";
 import PermissionTooltip from "@/components/PermissionTooltip";
+import { useSubsidiaries, useKPIs } from "@/hooks/useApi";
 
 interface Transfer {
   from: string;
@@ -21,6 +21,21 @@ interface Transfer {
 export default function ScenarioPage() {
   const { hasPermission } = usePermissions();
   const canManage = hasPermission("manage_scenarios");
+  
+  const { data: subsidiaries = [] } = useSubsidiaries();
+  const { data: kpis = [] } = useKPIs();
+
+  const baseKPIs = useMemo(() => {
+    return subsidiaries.map((sub: any) => {
+      const subKpis = kpis.filter((k: any) => k.subsidiary_id === sub.id);
+      const roace = subKpis.find((k: any) => k.metric_name === 'roace')?.metric_value || 0;
+      return {
+        subsidiary: sub.name,
+        roace: roace,
+      };
+    });
+  }, [subsidiaries, kpis]);
+
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -38,25 +53,25 @@ export default function ScenarioPage() {
 
   // Simulate impact on ROACE
   const simulatedData = useMemo(() => {
-    const baseData = mockKPIData.map((k) => ({ ...k, simulated_roace: k.roace }));
+    const baseData = baseKPIs.map((k: any) => ({ ...k, simulated_roace: k.roace }));
 
     transfers.forEach((t) => {
-      const fromSub = baseData.find((d) => d.subsidiary === t.from);
-      const toSub = baseData.find((d) => d.subsidiary === t.to);
+      const fromSub = baseData.find((d: any) => d.subsidiary === t.from);
+      const toSub = baseData.find((d: any) => d.subsidiary === t.to);
       if (fromSub) fromSub.simulated_roace = Math.max(0, fromSub.simulated_roace - (t.amount / 1e8) * 1.2);
       if (toSub) toSub.simulated_roace = toSub.simulated_roace + (t.amount / 1e8) * 1.8;
     });
 
-    return baseData.map((d) => ({
+    return baseData.map((d: any) => ({
       subsidiary: d.subsidiary,
       baseline: d.roace,
       simulated: Math.round(d.simulated_roace * 10) / 10,
       delta: Math.round((d.simulated_roace - d.roace) * 10) / 10,
     }));
-  }, [transfers]);
+  }, [transfers, baseKPIs]);
 
   const totalMoved = transfers.reduce((s, t) => s + t.amount, 0);
-  const subNames = mockKPIData.map((k) => k.subsidiary);
+  const subNames = baseKPIs.map((k: any) => k.subsidiary);
 
   return (
     <AppLayout>

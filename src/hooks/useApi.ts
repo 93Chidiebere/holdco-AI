@@ -1,0 +1,89 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import type { Subsidiary } from "@/types";
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("holdco_token");
+  return {
+    "Content-Type": "application/json",
+    Authorization: token ? `Bearer ${token}` : "",
+  };
+};
+
+// Generic fetcher
+const fetcher = async (url: string, options?: RequestInit) => {
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      ...getAuthHeaders(),
+      ...options?.headers,
+    },
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.detail || `API error: ${res.status}`);
+  }
+  return res.json();
+};
+
+// Hooks for Subsidiaries
+export function useSubsidiaries() {
+  return useQuery({
+    queryKey: ["subsidiaries"],
+    queryFn: () => fetcher("/api/subsidiaries/"),
+  });
+}
+
+export function useCreateSubsidiary() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Subsidiary>) =>
+      fetcher("/api/subsidiaries/", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["subsidiaries"] });
+      toast.success("Subsidiary created successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+}
+
+// Hooks for KPIs
+export function useKPIs() {
+  return useQuery({
+    queryKey: ["kpis"],
+    queryFn: () => fetcher("/api/kpis/"),
+  });
+}
+
+// Hooks for Insights
+export function useInsights() {
+  return useQuery({
+    queryKey: ["insights"],
+    queryFn: () => fetcher("/api/insights/"),
+  });
+}
+
+// Hooks for Capital Recommendations
+export function useRecommendations() {
+  return useQuery({
+    queryKey: ["recommendations"],
+    queryFn: () => fetcher("/api/recommendations/"),
+  });
+}
+
+// Seed Data
+export function useSeedData() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => fetcher("/api/platform/seed", { method: "POST" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+      toast.success("Dummy data generated successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    },
+  });
+}

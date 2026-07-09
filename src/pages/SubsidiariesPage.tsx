@@ -9,12 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockSubsidiaries } from "@/data/mockData";
 import type { Subsidiary } from "@/types";
 import { Plus, Pencil, Trash2, Building2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import PermissionTooltip from "@/components/PermissionTooltip";
+import { useSubsidiaries, useCreateSubsidiary } from "@/hooks/useApi";
+import { useQueryClient } from "@tanstack/react-query";
 
 const industries = ["Technology", "Agriculture", "Financial Services", "Energy", "Healthcare", "Manufacturing", "Retail"];
 const countries = ["Nigeria", "Kenya", "South Africa", "Ghana", "Egypt", "Tanzania"];
@@ -23,14 +24,18 @@ const currencies = ["NGN", "KES", "ZAR", "GHS", "EGP", "TZS", "USD"];
 export default function SubsidiariesPage() {
   const { hasPermission } = usePermissions();
   const canManage = hasPermission("manage_subsidiaries");
-  const [subsidiaries, setSubsidiaries] = useState<Subsidiary[]>(mockSubsidiaries);
+  
+  const { data: subsidiaries = [], isLoading } = useSubsidiaries();
+  const { mutate: createSubsidiary, isPending: isCreating } = useCreateSubsidiary();
+  const queryClient = useQueryClient();
+
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Subsidiary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Subsidiary | null>(null);
   const [form, setForm] = useState({ name: "", industry: "", country: "", currency: "", description: "" });
 
-  const filtered = subsidiaries.filter(s =>
+  const filtered = subsidiaries.filter((s: Subsidiary) =>
     s.name.toLowerCase().includes(search.toLowerCase()) || s.industry.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -42,7 +47,7 @@ export default function SubsidiariesPage() {
 
   const openEdit = (sub: Subsidiary) => {
     setEditing(sub);
-    setForm({ name: sub.name, industry: sub.industry, country: sub.country, currency: sub.currency, description: sub.description });
+    setForm({ name: sub.name, industry: sub.industry, country: sub.country, currency: sub.currency, description: sub.description || "" });
     setDialogOpen(true);
   };
 
@@ -52,20 +57,29 @@ export default function SubsidiariesPage() {
       return;
     }
     if (editing) {
-      setSubsidiaries(prev => prev.map(s => s.id === editing.id ? { ...s, ...form } : s));
-      toast.success("Subsidiary updated");
+      // In a real app, you'd use an updateMutation here
+      toast.info("Update subsidiary logic goes here");
+      setDialogOpen(false);
     } else {
-      const newSub: Subsidiary = { id: Date.now().toString(), ...form, created_at: new Date().toISOString().split("T")[0] };
-      setSubsidiaries(prev => [...prev, newSub]);
-      toast.success("Subsidiary created");
+      createSubsidiary(form, {
+        onSuccess: () => setDialogOpen(false)
+      });
     }
-    setDialogOpen(false);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deleteTarget) return;
-    setSubsidiaries(prev => prev.filter(s => s.id !== deleteTarget.id));
-    toast.success(`"${deleteTarget.name}" has been deleted`);
+    try {
+      const token = localStorage.getItem("holdco_token");
+      await fetch(`/api/subsidiaries/${deleteTarget.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      queryClient.invalidateQueries({ queryKey: ["subsidiaries"] });
+      toast.success(`"${deleteTarget.name}" has been deleted`);
+    } catch (e) {
+      toast.error("Failed to delete");
+    }
     setDeleteTarget(null);
   };
 
@@ -118,7 +132,9 @@ export default function SubsidiariesPage() {
                   <Label>Description</Label>
                   <Input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Brief description" />
                 </div>
-                <Button onClick={handleSave} className="w-full">{editing ? "Update" : "Create"}</Button>
+                <Button onClick={handleSave} className="w-full" disabled={isCreating}>
+                  {isCreating ? "Saving..." : editing ? "Update" : "Create"}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -131,12 +147,14 @@ export default function SubsidiariesPage() {
           <Input className="pl-10" placeholder="Search subsidiaries..." value={search} onChange={e => setSearch(e.target.value)} />
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map(sub => (
-            <Card key={sub.id} className="glass-card group">
-              <CardHeader className="pb-3 flex flex-row items-start justify-between">
-                <Link to={`/subsidiaries/${sub.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+        {isLoading ? (
+          <div className="text-center py-12 text-muted-foreground">Loading subsidiaries...</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filtered.map((sub: Subsidiary) => (
+              <Card key={sub.id} className="glass-card group">
+                <CardHeader className="pb-3 flex flex-row items-start justify-between">
+                  <Link to={`/subsidiaries/${sub.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Building2 className="w-5 h-5 text-primary" />
                   </div>
@@ -160,6 +178,7 @@ export default function SubsidiariesPage() {
             </Card>
           ))}
         </div>
+        )}
 
         {/* Delete Confirmation */}
         <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>

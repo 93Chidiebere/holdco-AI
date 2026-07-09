@@ -1,16 +1,8 @@
 import AppLayout from "@/components/layout/AppLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockInsights } from "@/data/mockData";
+import { useInsights, useSubsidiaries } from "@/hooks/useApi";
 import { AlertTriangle, TrendingUp, Shield, Zap, Activity, Brain } from "lucide-react";
-
-const typeIcons: Record<string, typeof AlertTriangle> = {
-  anomaly: AlertTriangle,
-  alert: Zap,
-  risk: Shield,
-  opportunity: TrendingUp,
-  trend: Activity,
-};
 
 const severityColors: Record<string, string> = {
   low: "bg-info/10 text-info border-info/20",
@@ -19,23 +11,26 @@ const severityColors: Record<string, string> = {
   critical: "bg-destructive/20 text-destructive border-destructive/30",
 };
 
-const typeColors: Record<string, string> = {
-  anomaly: "text-warning",
-  alert: "text-destructive",
-  risk: "text-destructive",
-  opportunity: "text-success",
-  trend: "text-info",
-};
-
 export default function InsightsPage() {
+  const { data: insights = [], isLoading } = useInsights();
+  const { data: subsidiaries = [] } = useSubsidiaries();
+
   const grouped = {
-    critical: mockInsights.filter(i => i.severity === "critical"),
-    high: mockInsights.filter(i => i.severity === "high"),
-    medium: mockInsights.filter(i => i.severity === "medium"),
-    low: mockInsights.filter(i => i.severity === "low"),
+    critical: insights.filter((i: any) => i.severity === "critical"),
+    high: insights.filter((i: any) => i.severity === "high"),
+    medium: insights.filter((i: any) => i.severity === "medium"),
+    low: insights.filter((i: any) => i.severity === "low"),
   };
 
-  const allSorted = [...grouped.critical, ...grouped.high, ...grouped.medium, ...grouped.low];
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case "risk": return <Shield className="w-5 h-5 text-destructive" />;
+      case "opportunity": return <TrendingUp className="w-5 h-5 text-success" />;
+      case "liquidity": return <Zap className="w-5 h-5 text-warning" />;
+      case "performance": return <Activity className="w-5 h-5 text-info" />;
+      default: return <AlertTriangle className="w-5 h-5 text-muted-foreground" />;
+    }
+  };
 
   return (
     <AppLayout>
@@ -64,35 +59,40 @@ export default function InsightsPage() {
         </div>
 
         {/* Insights List */}
-        <div className="space-y-4">
-          {allSorted.map((insight, i) => {
-            const Icon = typeIcons[insight.type] || Activity;
-            return (
-              <Card key={insight.id} className="glass-card animate-fade-up" style={{ animationDelay: `${i * 0.05}s` }}>
-                <CardContent className="p-5">
-                  <div className="flex items-start gap-4">
-                    <div className={`w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0 ${typeColors[insight.type]}`}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-3 mb-2">
-                        <div>
-                          <h3 className="font-semibold">{insight.title}</h3>
-                          <p className="text-xs text-muted-foreground">{insight.subsidiary_name} · {insight.created_at}</p>
+        {isLoading ? (
+          <div className="text-center py-12 text-muted-foreground">Loading insights...</div>
+        ) : (
+          <div className="space-y-4">
+            {insights.map((insight: any) => {
+              const sub = subsidiaries.find((s: any) => s.id === insight.related_subsidiary_id);
+              return (
+                <Card key={insight.id} className="glass-card hover:border-primary/20 transition-colors">
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        {getCategoryIcon(insight.category)}
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-lg">{insight.title}</h3>
+                          <Badge variant="outline" className={severityColors[insight.severity as keyof typeof severityColors]}>
+                            {insight.severity}
+                          </Badge>
                         </div>
-                        <div className="flex gap-2 shrink-0">
-                          <Badge variant="outline" className={`${severityColors[insight.severity]} text-xs`}>{insight.severity}</Badge>
-                          <Badge variant="secondary" className="text-xs capitalize">{insight.type}</Badge>
+                        <p className="text-sm text-muted-foreground">{insight.description}</p>
+                        <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border/50">
+                          <span className="text-xs font-medium text-sidebar-accent-foreground">
+                            Target: {sub?.name || 'Unknown'}
+                          </span>
                         </div>
                       </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{insight.description}</p>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
     </AppLayout>
   );

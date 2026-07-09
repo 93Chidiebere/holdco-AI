@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,12 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockRecommendations } from "@/data/mockData";
 import type { CapitalRecommendation } from "@/types";
 import { Wallet, ArrowRightLeft, TrendingUp, AlertTriangle, Scissors, DollarSign, Check, X, Clock, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import PermissionTooltip from "@/components/PermissionTooltip";
+import { useRecommendations } from "@/hooks/useApi";
 
 const typeIcons: Record<string, typeof Wallet> = {
   reallocation: ArrowRightLeft,
@@ -55,13 +55,19 @@ const teamMembers = ["Adebayo Ogunlesi", "Funke Adeyemi", "Chidi Nwosu", "Ngozi 
 export default function CapitalPage() {
   const { hasPermission } = usePermissions();
   const canManage = hasPermission("manage_capital");
-  const [recommendations, setRecommendations] = useState<CapitalRecommendation[]>(
-    mockRecommendations.map((r) => ({ ...r, status: r.status || "pending" }))
-  );
+  const { data: recommendationsData = [], isLoading } = useRecommendations();
+  
+  const [recommendations, setRecommendations] = useState<CapitalRecommendation[]>([]);
   const [assignDialog, setAssignDialog] = useState<string | null>(null);
   const [assignee, setAssignee] = useState("");
   const [notes, setNotes] = useState("");
   const [filter, setFilter] = useState<string>("all");
+
+  useEffect(() => {
+    if (recommendationsData.length > 0) {
+      setRecommendations(recommendationsData.map((r: any) => ({ ...r, status: r.status || "pending" })));
+    }
+  }, [recommendationsData]);
 
   const updateStatus = (id: string, status: "approved" | "rejected" | "deferred") => {
     setRecommendations((prev) =>
