@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +41,7 @@ export default function DashboardPage() {
     };
   });
 
-  const generatedRevenueData = React.useMemo(() => {
+  const generatedRevenueData = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     return months.map((month, i) => {
       const data: any = { month };
