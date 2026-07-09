@@ -24,6 +24,7 @@ import ExportPage from "./pages/ExportPage";
 import AuditTrailPage from "./pages/AuditTrailPage";
 import SettingsPage from "./pages/SettingsPage";
 import PlatformOverviewPage from "./pages/PlatformOverviewPage";
+import PortalUploadPage from "./pages/PortalUploadPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -59,6 +60,7 @@ function AppRoutes() {
       <Route path="/export" element={<ProtectedRoute><ProtectedPage permission="view_export"><ExportPage /></ProtectedPage></ProtectedRoute>} />
       <Route path="/audit" element={<ProtectedRoute><ProtectedPage permission="view_audit"><AuditTrailPage /></ProtectedPage></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><ProtectedPage permission="view_settings"><SettingsPage /></ProtectedPage></ProtectedRoute>} />
+      <Route path="/portal/:token" element={<PortalUploadPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

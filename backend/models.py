@@ -65,20 +65,32 @@ class FinancialReport(Base):
     
     subsidiary = relationship("Subsidiary", back_populates="reports")
 
+class SubsidiaryToken(Base):
+    __tablename__ = "subsidiary_tokens"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    subsidiary_id = Column(String, ForeignKey("subsidiaries.id"))
+    token = Column(String, unique=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=True)
+    
+    subsidiary = relationship("Subsidiary")
+
 class NormalizedData(Base):
     __tablename__ = "normalized_data"
     id = Column(String, primary_key=True, default=generate_uuid)
     subsidiary_id = Column(String, ForeignKey("subsidiaries.id"))
     date = Column(DateTime)
-    revenue = Column(Float, default=0)
-    expenses = Column(Float, default=0)
+    gross_revenue = Column(Float, default=0)
+    cogs = Column(Float, default=0)
+    operating_expenses = Column(Float, default=0)
+    pbt = Column(Float, default=0)
     net_income = Column(Float, default=0)
-    cash = Column(Float, default=0)
-    debt = Column(Float, default=0)
-    assets = Column(Float, default=0)
-    liabilities = Column(Float, default=0)
-    equity = Column(Float, default=0)
-    operating_costs = Column(Float, default=0)
+    cash_and_equivalents = Column(Float, default=0)
+    total_assets = Column(Float, default=0)
+    total_liabilities = Column(Float, default=0)
+    total_equity = Column(Float, default=0)
+    capital_expenditure = Column(Float, default=0)
+    headcount = Column(Integer, default=0)
     
     subsidiary = relationship("Subsidiary", back_populates="normalized_data")
 

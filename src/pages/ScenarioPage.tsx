@@ -28,7 +28,7 @@ export default function ScenarioPage() {
   const baseKPIs = useMemo(() => {
     return subsidiaries.map((sub: any) => {
       const subKpis = kpis.filter((k: any) => k.subsidiary_id === sub.id);
-      const roace = subKpis.find((k: any) => k.metric_name === 'roace')?.metric_value || 0;
+      const roace = subKpis.find((k: any) => k.name.toLowerCase().includes('roace'))?.value || 0;
       return {
         subsidiary: sub.name,
         roace: roace,

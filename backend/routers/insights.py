@@ -16,6 +16,6 @@ def read_insights(
         
     query = db.query(models.AIInsight)
     if current_user.role != "superadmin":
-        query = query.filter(models.AIInsight.holding_company_id == current_user.holding_company_id)
+        query = query.join(models.Subsidiary).filter(models.Subsidiary.holding_company_id == current_user.holding_company_id)
         
     return query.all()

@@ -1,27 +1,37 @@
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { mockSubsidiaries, mockKPIData, mockNormalizedData, mockInsights } from "@/data/mockData";
-import { ArrowLeft, TrendingUp, TrendingDown, Building2 } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, Building2, Link as LinkIcon, Check, Copy } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { useSubsidiaries, useKPIs, useInsights, api } from "@/hooks/useApi";
+import { toast } from "sonner";
+import { usePermissions } from "@/hooks/usePermissions";
+import PermissionTooltip from "@/components/PermissionTooltip";
 
 const kpiLabels: Record<string, { label: string; unit: string }> = {
   roace: { label: "ROACE", unit: "%" },
-  ebitda_margin: { label: "EBITDA Margin", unit: "%" },
   revenue_growth: { label: "Revenue Growth", unit: "%" },
-  liquidity: { label: "Liquidity Ratio", unit: "x" },
-  debt_equity: { label: "Debt/Equity", unit: "x" },
 };
 
 export default function SubsidiaryDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const sub = mockSubsidiaries.find((s) => s.id === id);
-  const kpiKey = sub?.name.split(" ")[0] || "";
-  const kpi = mockKPIData.find((k) => k.subsidiary.startsWith(kpiKey));
-  const financials = mockNormalizedData.filter((d) => d.subsidiary_id === id);
-  const insights = mockInsights.filter((i) => i.subsidiary_id === id);
+  const { data: subsidiaries = [] } = useSubsidiaries();
+  const { data: kpis = [] } = useKPIs();
+  const { data: insightsData = [] } = useInsights();
+  const { hasPermission } = usePermissions();
+  
+  const canManage = hasPermission("manage_subsidiaries");
+  
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedLink, setGeneratedLink] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const sub = subsidiaries.find((s: any) => s.id === id);
+  const subKpis = kpis.filter((k: any) => k.subsidiary_id === id);
+  const insights = insightsData.filter((i: any) => i.subsidiary_id === id);
 
   if (!sub) {
     return (
@@ -34,39 +44,71 @@ export default function SubsidiaryDetailPage() {
     );
   }
 
-  const kpiCards = kpi
-    ? Object.entries(kpiLabels).map(([key, meta]) => ({
-        ...meta,
-        value: (kpi as any)[key] as number,
-        isPositive: key === "debt_equity" ? (kpi as any)[key] < 1 : (kpi as any)[key] > 0,
-      }))
-    : [];
+  const handleGenerateLink = async () => {
+    setIsGenerating(true);
+    try {
+      const response = await api.post('/portal/generate-token', { subsidiary_id: sub.id });
+      const link = `${window.location.origin}/portal/${response.data.token}`;
+      setGeneratedLink(link);
+      toast.success("Secure upload link generated");
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Failed to generate link");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(generatedLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast.success("Link copied to clipboard");
+  };
 
   return (
     <AppLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild><Link to="/subsidiaries"><ArrowLeft className="w-5 h-5" /></Link></Button>
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Building2 className="w-6 h-6 text-primary" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" asChild><Link to="/subsidiaries"><ArrowLeft className="w-5 h-5" /></Link></Button>
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              <Building2 className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">{sub.name}</h1>
+              <p className="text-muted-foreground text-sm">{sub.industry} · {sub.country} · {sub.currency}</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">{sub.name}</h1>
-            <p className="text-muted-foreground text-sm">{sub.industry} · {sub.country} · {sub.currency}</p>
-          </div>
+          
+          <PermissionTooltip hasPermission={canManage} message="Only admins can generate upload links.">
+            <Button onClick={handleGenerateLink} disabled={!canManage || isGenerating} variant="outline" className="gap-2">
+              <LinkIcon className="w-4 h-4" />
+              {isGenerating ? "Generating..." : "Generate Upload Link"}
+            </Button>
+          </PermissionTooltip>
         </div>
+
+        {generatedLink && (
+          <div className="p-3 bg-muted/50 rounded-lg flex items-center justify-between gap-3 animate-fade-in border border-border">
+            <div className="truncate text-sm font-mono text-muted-foreground">{generatedLink}</div>
+            <Button size="sm" variant="secondary" onClick={handleCopy} className="shrink-0">
+              {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+              {copied ? "Copied" : "Copy Link"}
+            </Button>
+          </div>
+        )}
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {kpiCards.map((k) => (
-            <Card key={k.label} className="glass-card">
+          {subKpis.map((k: any) => (
+            <Card key={k.name} className="glass-card">
               <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground mb-1">{k.label}</p>
+                <p className="text-xs text-muted-foreground mb-1 capitalize">{k.name.replace(/_/g, " ")}</p>
                 <div className="flex items-end gap-1.5">
                   <span className="text-xl font-bold">{k.value}</span>
                   <span className="text-xs text-muted-foreground mb-0.5">{k.unit}</span>
-                  {k.isPositive ? (
+                  {k.trend === "up" ? (
                     <TrendingUp className="w-3.5 h-3.5 text-success ml-auto" />
                   ) : (
                     <TrendingDown className="w-3.5 h-3.5 text-destructive ml-auto" />
@@ -77,55 +119,6 @@ export default function SubsidiaryDetailPage() {
           ))}
         </div>
 
-        {/* Financial Trends */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Card className="glass-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold">Revenue & Expenses</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[280px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={financials}>
-                    <defs>
-                      <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 18%)" />
-                    <XAxis dataKey="date" stroke="hsl(220, 10%, 55%)" fontSize={11} tickFormatter={(v) => v.slice(5)} />
-                    <YAxis stroke="hsl(220, 10%, 55%)" fontSize={11} />
-                    <Tooltip contentStyle={{ backgroundColor: "hsl(220, 25%, 12%)", border: "1px solid hsl(220, 20%, 18%)", borderRadius: "8px", color: "hsl(220, 10%, 93%)" }} />
-                    <Area type="monotone" dataKey="revenue" stroke="hsl(160, 84%, 39%)" fill="url(#revGrad)" strokeWidth={2} />
-                    <Area type="monotone" dataKey="expenses" stroke="hsl(0, 84%, 60%)" fill="none" strokeWidth={2} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold">Assets vs Liabilities</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[280px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={financials}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 18%)" />
-                    <XAxis dataKey="date" stroke="hsl(220, 10%, 55%)" fontSize={11} tickFormatter={(v) => v.slice(5)} />
-                    <YAxis stroke="hsl(220, 10%, 55%)" fontSize={11} />
-                    <Tooltip contentStyle={{ backgroundColor: "hsl(220, 25%, 12%)", border: "1px solid hsl(220, 20%, 18%)", borderRadius: "8px", color: "hsl(220, 10%, 93%)" }} />
-                    <Bar dataKey="assets" fill="hsl(217, 91%, 60%)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="liabilities" fill="hsl(38, 92%, 50%)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Insights */}
         {insights.length > 0 && (
           <Card className="glass-card">
@@ -134,7 +127,7 @@ export default function SubsidiaryDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {insights.map((insight) => (
+                {insights.map((insight: any) => (
                   <div key={insight.id} className="p-3 rounded-lg bg-muted/50 space-y-1">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-medium">{insight.title}</p>

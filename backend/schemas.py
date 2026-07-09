@@ -84,17 +84,32 @@ class FinancialReport(FinancialReportBase):
         orm_mode = True
         from_attributes = True
 
+class SubsidiaryTokenBase(BaseModel):
+    subsidiary_id: str
+
+class SubsidiaryToken(SubsidiaryTokenBase):
+    id: str
+    token: str
+    created_at: datetime
+    expires_at: Optional[datetime] = None
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
 class NormalizedDataBase(BaseModel):
     date: datetime
-    revenue: float
-    expenses: float
+    gross_revenue: float
+    cogs: float
+    operating_expenses: float
+    pbt: float
     net_income: float
-    cash: float
-    debt: float
-    assets: float
-    liabilities: float
-    equity: float
-    operating_costs: float
+    cash_and_equivalents: float
+    total_assets: float
+    total_liabilities: float
+    total_equity: float
+    capital_expenditure: float
+    headcount: int
 
 class NormalizedData(NormalizedDataBase):
     id: str

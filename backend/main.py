@@ -24,6 +24,7 @@ app.include_router(reports.router)
 app.include_router(insights.router)
 app.include_router(recommendations.router)
 app.include_router(seed.router)
+app.include_router(portal.router)
 
 @app.get("/")
 def read_root():
