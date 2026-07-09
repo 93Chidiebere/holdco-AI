@@ -5,7 +5,7 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from . import models, schemas, database
+import models, schemas, database
 
 # Secret key for JWT (In production, load from environment variable)
 SECRET_KEY = "super-secret-holdco-key-change-in-production"
