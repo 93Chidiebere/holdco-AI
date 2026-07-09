@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import type { User } from "@/types";
 
 interface AuthContextType {
@@ -11,94 +11,99 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// HoldCo AI parent / platform-owner accounts. These see EVERY holding company.
-const PLATFORM_OWNER_EMAILS = ["platform@holdco.ai", "owner@holdco.ai"];
-
-interface RegisteredCompany {
-  id: string;
-  name: string;
-  owner_email: string;
-  owner_name: string;
-  created_at: string;
-}
-
-function recordCompany(c: RegisteredCompany) {
-  try {
-    const all: RegisteredCompany[] = JSON.parse(localStorage.getItem("holdco_companies") || "[]");
-    if (!all.some((x) => x.id === c.id)) {
-      all.push(c);
-      localStorage.setItem("holdco_companies", JSON.stringify(all));
-    }
-  } catch {
-    localStorage.setItem("holdco_companies", JSON.stringify([c]));
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     const stored = localStorage.getItem("holdco_user");
     return stored ? JSON.parse(stored) : null;
   });
 
-  const login = async (email: string, _password: string): Promise<boolean> => {
-    // Platform owner shortcut
-    if (PLATFORM_OWNER_EMAILS.includes(email.toLowerCase())) {
-      const platformUser: User = {
-        id: "platform-owner",
-        email,
-        name: "HoldCo AI Platform",
-        role: "superadmin",
-        holding_company_id: "platform",
-        holding_company_name: "HoldCo AI (Platform)",
-      };
-      setUser(platformUser);
-      localStorage.setItem("holdco_user", JSON.stringify(platformUser));
-      return true;
-    }
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem("holdco_token"));
 
-    const storedRole = localStorage.getItem(`holdco_role_${email}`) as User["role"] | null;
-    const mockUser: User = {
-      id: "1",
-      email,
-      name: localStorage.getItem(`holdco_name_${email}`) || email.split("@")[0],
-      role: storedRole || "admin",
-      holding_company_id: localStorage.getItem(`holdco_companyid_${email}`) || "hc-1",
-      holding_company_name: localStorage.getItem(`holdco_company_${email}`) || "Demo Holdings",
-    };
-    setUser(mockUser);
-    localStorage.setItem("holdco_user", JSON.stringify(mockUser));
-    return true;
+  useEffect(() => {
+    if (token) {
+      // Validate token or fetch me
+      fetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error("Invalid token");
+      })
+      .then(data => {
+        setUser(data);
+        localStorage.setItem("holdco_user", JSON.stringify(data));
+      })
+      .catch(() => {
+        logout();
+      });
+    }
+  }, [token]);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      const formData = new URLSearchParams();
+      formData.append("username", email);
+      formData.append("password", password);
+
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData.toString()
+      });
+
+      if (!res.ok) return false;
+      const data = await res.json();
+      setToken(data.access_token);
+      localStorage.setItem("holdco_token", data.access_token);
+
+      // Fetch user profile
+      const userRes = await fetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${data.access_token}` }
+      });
+      if (userRes.ok) {
+        const userData = await userRes.json();
+        setUser(userData);
+        localStorage.setItem("holdco_user", JSON.stringify(userData));
+      }
+      return true;
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   };
 
-  const signup = async (name: string, email: string, _password: string, companyName: string, role: User["role"] = "admin"): Promise<boolean> => {
-    const companyId = `hc-${Date.now()}`;
-    const mockUser: User = {
-      id: Date.now().toString(),
-      email,
-      name,
-      role,
-      holding_company_id: companyId,
-      holding_company_name: companyName,
-    };
-    localStorage.setItem(`holdco_role_${email}`, role);
-    localStorage.setItem(`holdco_name_${email}`, name);
-    localStorage.setItem(`holdco_company_${email}`, companyName);
-    localStorage.setItem(`holdco_companyid_${email}`, companyId);
-    recordCompany({
-      id: companyId,
-      name: companyName,
-      owner_email: email,
-      owner_name: name,
-      created_at: new Date().toISOString(),
-    });
-    setUser(mockUser);
-    localStorage.setItem("holdco_user", JSON.stringify(mockUser));
-    return true;
+  const signup = async (name: string, email: string, password: string, companyName: string, role: User["role"] = "admin"): Promise<boolean> => {
+    try {
+      // Create holding company (Mock logic for now, should ideally be an API call)
+      // For this step, we just pass holding_company_id or assume backend handles it.
+      // We will send standard user create data to backend.
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          name,
+          password,
+          role,
+          holding_company_id: "hc-" + Date.now() // Ideally created first via /api/platform
+        })
+      });
+
+      if (!res.ok) return false;
+      
+      // Auto login after signup
+      return await login(email, password);
+    } catch (e) {
+      console.error(e);
+      return false;
+    }
   };
 
   const logout = () => {
     setUser(null);
+    setToken(null);
     localStorage.removeItem("holdco_user");
+    localStorage.removeItem("holdco_token");
   };
 
   return (
@@ -113,3 +118,4 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
+
