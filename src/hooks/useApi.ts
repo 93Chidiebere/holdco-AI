@@ -106,3 +106,44 @@ export function useSeedData() {
     },
   });
 }
+
+// Hooks for Currency
+export function useCurrency() {
+  return useQuery({
+    queryKey: ["currency"],
+    queryFn: () => fetcher("/api/auth/holding-company/currency").then((res: any) => res.currency),
+    staleTime: Infinity,
+  });
+}
+
+export function useUpdateCurrency() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (currency: string) => fetcher("/api/auth/holding-company/currency", { 
+      method: "PUT", 
+      body: JSON.stringify({ currency }) 
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["currency"] });
+      toast.success("Currency updated successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update currency");
+    },
+  });
+}
+
+export function useGeneratePortfolioInsights() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => fetcher("/api/insights/generate-portfolio", { method: "POST" }),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["insights"] });
+      queryClient.invalidateQueries({ queryKey: ["recommendations"] });
+      toast.success(res.message || "Portfolio Analysis Complete!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to run portfolio analysis");
+    },
+  });
+}

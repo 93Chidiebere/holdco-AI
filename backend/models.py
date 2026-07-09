@@ -20,6 +20,7 @@ class HoldingCompany(Base):
     name = Column(String, index=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     owner_id = Column(String) # UUID of User
+    currency = Column(String, default="NGN")
 
     users = relationship("User", back_populates="holding_company")
     subsidiaries = relationship("Subsidiary", back_populates="holding_company")

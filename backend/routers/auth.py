@@ -64,3 +64,25 @@ def read_users_me(current_user: models.User = Depends(auth.get_current_user), db
         if hc:
             current_user.holding_company_name = hc.name
     return current_user
+
+@router.get("/holding-company/currency")
+def get_currency(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+    if not current_user.holding_company_id:
+        return {"currency": "NGN"}
+    hc = db.query(models.HoldingCompany).filter(models.HoldingCompany.id == current_user.holding_company_id).first()
+    return {"currency": hc.currency if hc and hc.currency else "NGN"}
+
+from pydantic import BaseModel
+class CurrencyUpdate(BaseModel):
+    currency: str
+
+@router.put("/holding-company/currency")
+def update_currency(update: CurrencyUpdate, current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(database.get_db)):
+    if current_user.role != "admin" and current_user.role != "superadmin":
+        raise HTTPException(status_code=403, detail="Only admins can update company settings")
+        
+    hc = db.query(models.HoldingCompany).filter(models.HoldingCompany.id == current_user.holding_company_id).first()
+    if hc:
+        hc.currency = update.currency
+        db.commit()
+    return {"message": "Currency updated", "currency": hc.currency if hc else "NGN"}

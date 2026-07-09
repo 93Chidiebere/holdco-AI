@@ -6,8 +6,9 @@ import { mockRevenueData } from "@/data/mockData";
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, AlertTriangle, Building2, Brain, ArrowUpRight, Database } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { Link } from "react-router-dom";
-import { useSubsidiaries, useKPIs, useInsights, useSeedData } from "@/hooks/useApi";
+import { useSubsidiaries, useKPIs, useInsights, useSeedData, useCurrency } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
+import { getCurrencySymbol } from "@/lib/utils";
 
 const severityColors: Record<string, string> = {
   low: "bg-info/10 text-info border-info/20",
@@ -21,9 +22,11 @@ export default function DashboardPage() {
   const { data: kpis = [] } = useKPIs();
   const { data: insights = [] } = useInsights();
   const { mutate: seedData, isPending: isSeeding } = useSeedData();
+  const { data: currencyCode = "NGN" } = useCurrency();
+  const sym = getCurrencySymbol(currencyCode);
 
   const portfolioStats = [
-    { label: "Total Revenue", value: "₦2.87B", change: "+12.4%", trend: "up" as const, icon: DollarSign },
+    { label: "Total Revenue", value: `${sym}2.87B`, change: "+12.4%", trend: "up" as const, icon: DollarSign },
     { label: "Portfolio ROACE", value: "15.7%", change: "+2.1%", trend: "up" as const, icon: BarChart3 },
     { label: "Active Subsidiaries", value: subsidiaries.length.toString(), change: "0", trend: "flat" as const, icon: Building2 },
     { label: "Active Alerts", value: insights.filter((i: any) => i.severity === 'high' || i.severity === 'critical').length.toString(), change: "+1", trend: "down" as const, icon: AlertTriangle },

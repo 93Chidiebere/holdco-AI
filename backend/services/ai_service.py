@@ -97,7 +97,92 @@ def get_mock_insights(subsidiary_name: str) -> Dict[str, Any]:
           "description": "Strong cash flows suggest capacity to self-fund expansion without relying on the Holding Company.",
           "type": "growth_investment",
           "amount": 5000000,
-          "priority": "medium"
+        }
+      ]
+    }
+
+def generate_portfolio_insights(holding_company_name: str, subsidiaries_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Takes aggregated financial data for ALL subsidiaries in a holding company and uses Gemini
+    to perform a holistic, cross-subsidiary comparative analysis.
+    """
+    if not API_KEY:
+        logger.warning("GEMINI_API_KEY not found. Returning mock portfolio insights.")
+        return get_mock_portfolio_insights()
+        
+    data_str = json.dumps(subsidiaries_data, indent=2)
+    
+    prompt = f"""
+    You are an expert AI financial analyst and Group CFO for a massive Holding Company (like Dangote Group or Heirs Holdings).
+    Your job is to analyze the aggregated recent financial reports of ALL our subsidiaries and generate actionable strategic portfolio insights.
+    
+    Holding Company Name: {holding_company_name}
+    
+    Aggregated Financial Data for all subsidiaries (JSON):
+    {data_str}
+    
+    Tasks:
+    1. Rank the subsidiaries by performance and margins.
+    2. Identify cash-rich vs. cash-poor subsidiaries.
+    3. Recommend specific intra-company loans or bailouts (e.g., Take X amount from Subsidiary A and loan to Subsidiary B).
+    4. Recommend group-wide cost reduction, resource reallocation, or growth strategies.
+    
+    Return your response strictly as a JSON object with the following structure:
+    {{
+      "insights": [
+        {{
+          "title": "Short descriptive title (e.g., Heavy Cash Drag in Tech Subsidiary)",
+          "description": "Detailed explanation of what is happening across the portfolio and why.",
+          "severity": "low", "medium", "high", or "critical",
+          "type": "opportunity", "risk", "anomaly", or "alert"
+        }}
+      ],
+      "recommendations": [
+        {{
+          "title": "Strategic action to take",
+          "description": "Why we should do this and what the expected outcome is.",
+          "type": "reallocation", "internal_loan", "cost_reduction", "growth_investment", or "risk_alert",
+          "amount": (integer, estimated capital involved, 0 if not applicable),
+          "priority": "low", "medium", "high", or "urgent"
+        }}
+      ]
+    }}
+    
+    Only output valid JSON. Do not include markdown formatting like ```json.
+    """
+    
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt)
+        response_text = response.text.strip()
+        
+        if response_text.startswith("```json"):
+            response_text = response_text[7:-3]
+        elif response_text.startswith("```"):
+            response_text = response_text[3:-3]
+            
+        return json.loads(response_text)
+    except Exception as e:
+        logger.error(f"Failed to generate portfolio insights: {str(e)}")
+        return get_mock_portfolio_insights()
+
+def get_mock_portfolio_insights() -> Dict[str, Any]:
+    return {
+      "insights": [
+        {
+          "title": "Uneven Liquidity Distribution",
+          "description": "One subsidiary holds 70% of the group's cash reserves while others face liquidity crunches, hindering overall portfolio agility.",
+          "severity": "high",
+          "type": "risk"
+        }
+      ],
+      "recommendations": [
+        {
+          "title": "Execute Intra-Company Loan",
+          "description": "Transfer excess reserves from the cash-rich subsidiary to underperforming ones to fund short-term OPEX without external high-interest debt.",
+          "type": "internal_loan",
+          "amount": 2500000,
+          "priority": "urgent"
         }
       ]
     }

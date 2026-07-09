@@ -16,6 +16,8 @@ import { useAccessRequests } from "@/contexts/AccessRequestContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/sonner";
+import { useCurrency, useUpdateCurrency } from "@/hooks/useApi";
+import { useEffect } from "react";
 
 interface TeamMember {
   id: string;
@@ -43,12 +45,20 @@ export default function SettingsPage() {
   const { hasPermission, isAdmin } = usePermissions();
   const { theme, toggleTheme } = useTheme();
   const { requests, approve, reject, revoke, grantsFor } = useAccessRequests();
+  const { data: dbCurrency } = useCurrency();
+  const { mutate: updateCurrency } = useUpdateCurrency();
+  
   const [members, setMembers] = useState(initialMembers);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"analyst" | "viewer">("viewer");
   const [companyName, setCompanyName] = useState(user?.holding_company_name || "");
   const [profileName, setProfileName] = useState(user?.name || "");
+  const [currency, setCurrency] = useState("NGN");
+
+  useEffect(() => {
+    if (dbCurrency) setCurrency(dbCurrency);
+  }, [dbCurrency]);
 
   const canGrant = hasPermission("grant_access");
   const pendingRequests = requests.filter((r) => r.status === "pending");
@@ -335,6 +345,25 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                   <Label>Company Name</Label>
                   <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Base Currency</Label>
+                  <Select value={currency} onValueChange={(val) => {
+                    setCurrency(val);
+                    updateCurrency(val);
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NGN">Nigerian Naira (₦)</SelectItem>
+                      <SelectItem value="USD">US Dollar ($)</SelectItem>
+                      <SelectItem value="EUR">Euro (€)</SelectItem>
+                      <SelectItem value="GBP">British Pound (£)</SelectItem>
+                      <SelectItem value="KES">Kenyan Shilling (KSh)</SelectItem>
+                      <SelectItem value="ZAR">South African Rand (R)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Company ID</Label>

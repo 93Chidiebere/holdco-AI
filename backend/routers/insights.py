@@ -19,3 +19,70 @@ def read_insights(
         query = query.join(models.Subsidiary).filter(models.Subsidiary.holding_company_id == current_user.holding_company_id)
         
     return query.all()
+
+@router.post("/generate-portfolio")
+def generate_portfolio(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(database.get_db)
+):
+    if not current_user.holding_company_id:
+        raise HTTPException(status_code=400, detail="User not part of a holding company")
+        
+    hc = db.query(models.HoldingCompany).filter(models.HoldingCompany.id == current_user.holding_company_id).first()
+    subs = db.query(models.Subsidiary).filter(models.Subsidiary.holding_company_id == hc.id).all()
+    
+    if not subs:
+        raise HTTPException(status_code=400, detail="No subsidiaries found")
+        
+    portfolio_data = []
+    for sub in subs:
+        # Get latest 6 months of data per subsidiary for context
+        recent = db.query(models.NormalizedData).filter(
+            models.NormalizedData.subsidiary_id == sub.id
+        ).order_by(models.NormalizedData.date.desc()).limit(6).all()
+        
+        history = []
+        for d in recent:
+            history.append({
+                "date": d.date.strftime("%Y-%m"),
+                "revenue": d.gross_revenue,
+                "cogs": d.cogs,
+                "opex": d.operating_expenses,
+                "net_income": d.net_income,
+                "cash": d.cash_and_equivalents
+            })
+        
+        portfolio_data.append({
+            "subsidiary_name": sub.name,
+            "industry": sub.industry,
+            "recent_performance": history
+        })
+        
+    from services.ai_service import generate_portfolio_insights
+    ai_response = generate_portfolio_insights(hc.name, portfolio_data)
+    
+    records_added = 0
+    for ins in ai_response.get("insights", []):
+        db.add(models.AIInsight(
+            # No subsidiary id attached implies it's portfolio level, or we just tag type
+            type="portfolio_" + ins.get("type", "alert"),
+            severity=ins.get("severity", "medium"),
+            title=ins.get("title", "Portfolio Insight"),
+            description=ins.get("description", "")
+        ))
+        records_added += 1
+        
+    for rec in ai_response.get("recommendations", []):
+        db.add(models.CapitalRecommendation(
+            holding_company_id=hc.id,
+            type=rec.get("type", "internal_loan"),
+            title=rec.get("title", "Portfolio Recommendation"),
+            description=rec.get("description", ""),
+            amount=rec.get("amount", 0),
+            priority=rec.get("priority", "medium"),
+            status="pending"
+        ))
+        records_added += 1
+        
+    db.commit()
+    return {"message": f"Generated {records_added} portfolio insights/recommendations"}

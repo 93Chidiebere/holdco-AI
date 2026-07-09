@@ -1,7 +1,8 @@
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useInsights, useSubsidiaries } from "@/hooks/useApi";
+import { Button } from "@/components/ui/button";
+import { useInsights, useSubsidiaries, useGeneratePortfolioInsights } from "@/hooks/useApi";
 import { AlertTriangle, TrendingUp, Shield, Zap, Activity, Brain } from "lucide-react";
 
 const severityColors: Record<string, string> = {
@@ -14,6 +15,7 @@ const severityColors: Record<string, string> = {
 export default function InsightsPage() {
   const { data: insights = [], isLoading } = useInsights();
   const { data: subsidiaries = [] } = useSubsidiaries();
+  const { mutate: runPortfolioAnalysis, isPending: isGenerating } = useGeneratePortfolioInsights();
 
   const grouped = {
     critical: insights.filter((i: any) => i.severity === "critical"),
@@ -40,6 +42,16 @@ export default function InsightsPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight">AI Insights</h1>
             <p className="text-muted-foreground mt-1">Machine learning-powered anomaly detection and performance analysis</p>
+          </div>
+          <div className="ml-auto">
+            <Button 
+              onClick={() => runPortfolioAnalysis()} 
+              disabled={isGenerating}
+              className="gap-2"
+            >
+              <Brain className="w-4 h-4" />
+              {isGenerating ? "Analyzing Portfolio..." : "Run Portfolio Analysis"}
+            </Button>
           </div>
         </div>
 
