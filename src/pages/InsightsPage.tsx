@@ -26,8 +26,8 @@ export default function InsightsPage() {
     switch (category) {
       case "risk": return <Shield className="w-5 h-5 text-destructive" />;
       case "opportunity": return <TrendingUp className="w-5 h-5 text-success" />;
-      case "liquidity": return <Zap className="w-5 h-5 text-warning" />;
-      case "performance": return <Activity className="w-5 h-5 text-info" />;
+      case "anomaly": return <Zap className="w-5 h-5 text-warning" />;
+      case "trend": return <Activity className="w-5 h-5 text-info" />;
       default: return <AlertTriangle className="w-5 h-5 text-muted-foreground" />;
     }
   };
@@ -64,13 +64,13 @@ export default function InsightsPage() {
         ) : (
           <div className="space-y-4">
             {insights.map((insight: any) => {
-              const sub = subsidiaries.find((s: any) => s.id === insight.related_subsidiary_id);
+              const sub = subsidiaries.find((s: any) => s.id === insight.subsidiary_id);
               return (
                 <Card key={insight.id} className="glass-card hover:border-primary/20 transition-colors">
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        {getCategoryIcon(insight.category)}
+                        {getCategoryIcon(insight.type)}
                       </div>
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center justify-between">

@@ -40,6 +40,20 @@ export default function DashboardPage() {
     };
   });
 
+  const generatedRevenueData = React.useMemo(() => {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return months.map((month, i) => {
+      const data: any = { month };
+      subsidiaries.forEach((sub: any, index: number) => {
+        const base = 50 + (index * 20);
+        data[sub.name] = base + (i * 5) + Math.random() * 15;
+      });
+      return data;
+    });
+  }, [subsidiaries]);
+
+  const colors = ["hsl(160, 84%, 39%)", "hsl(217, 91%, 60%)", "hsl(0, 84%, 60%)", "hsl(38, 92%, 50%)", "hsl(280, 65%, 60%)"];
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -49,7 +63,7 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold tracking-tight">Executive Dashboard</h1>
             <p className="text-muted-foreground mt-1">Portfolio-wide performance overview</p>
           </div>
-          {subsidiaries.length === 0 && !isLoadingSubs && (
+          {!isLoadingSubs && (
             <Button onClick={() => seedData()} disabled={isSeeding} variant="default" className="gap-2">
               <Database className="w-4 h-4" />
               {isSeeding ? "Seeding Data..." : "Seed Dummy Data"}
@@ -89,26 +103,22 @@ export default function DashboardPage() {
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={mockRevenueData}>
+                  <AreaChart data={generatedRevenueData}>
                     <defs>
-                      <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(160, 84%, 39%)" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="grad2" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(217, 91%, 60%)" stopOpacity={0} />
-                      </linearGradient>
+                      {subsidiaries.map((sub: any, i: number) => (
+                        <linearGradient key={sub.id} id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor={colors[i % colors.length]} stopOpacity={0.3} />
+                          <stop offset="95%" stopColor={colors[i % colors.length]} stopOpacity={0} />
+                        </linearGradient>
+                      ))}
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 18%)" />
                     <XAxis dataKey="month" stroke="hsl(220, 10%, 55%)" fontSize={12} />
                     <YAxis stroke="hsl(220, 10%, 55%)" fontSize={12} />
                     <Tooltip contentStyle={{ backgroundColor: "hsl(220, 25%, 12%)", border: "1px solid hsl(220, 20%, 18%)", borderRadius: "8px", color: "hsl(220, 10%, 93%)" }} />
-                    <Area type="monotone" dataKey="TechVentures" stroke="hsl(160, 84%, 39%)" fill="url(#grad1)" strokeWidth={2} />
-                    <Area type="monotone" dataKey="FinServe" stroke="hsl(217, 91%, 60%)" fill="url(#grad2)" strokeWidth={2} />
-                    <Area type="monotone" dataKey="MediCare" stroke="hsl(38, 92%, 50%)" fill="none" strokeWidth={2} />
-                    <Area type="monotone" dataKey="AgriGrowth" stroke="hsl(280, 65%, 60%)" fill="none" strokeWidth={1.5} strokeDasharray="4 4" />
-                    <Area type="monotone" dataKey="EnergyPrime" stroke="hsl(0, 84%, 60%)" fill="none" strokeWidth={1.5} strokeDasharray="4 4" />
+                    {subsidiaries.map((sub: any, i: number) => (
+                      <Area key={sub.id} type="monotone" dataKey={sub.name} stroke={colors[i % colors.length]} fill={`url(#grad-${i})`} strokeWidth={2} />
+                    ))}
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -184,7 +194,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="space-y-3">
                 {insights.slice(0, 4).map((insight: any) => {
-                  const sub = subsidiaries.find((s: any) => s.id === insight.related_subsidiary_id);
+                  const sub = subsidiaries.find((s: any) => s.id === insight.subsidiary_id);
                   return (
                     <div key={insight.id} className="p-3 rounded-lg bg-muted/50 space-y-2">
                       <div className="flex items-start justify-between gap-2">

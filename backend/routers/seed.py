@@ -17,10 +17,14 @@ def seed_dummy_data(
     if not hc_id:
         raise HTTPException(status_code=400, detail="User must belong to a holding company to seed data")
         
-    # Check if data already exists
-    existing_subs = db.query(models.Subsidiary).filter(models.Subsidiary.holding_company_id == hc_id).count()
-    if existing_subs > 0:
-        raise HTTPException(status_code=400, detail="Database already contains subsidiaries. Clear data first.")
+    # Clear existing data for this holding company to ensure a fresh seed
+    db.query(models.CapitalRecommendation).filter(models.CapitalRecommendation.holding_company_id == hc_id).delete()
+    db.query(models.AIInsight).filter(models.AIInsight.subsidiary_id.in_(
+        db.query(models.Subsidiary.id).filter(models.Subsidiary.holding_company_id == hc_id)
+    )).delete(synchronize_session=False)
+    db.query(models.KPI).filter(models.KPI.holding_company_id == hc_id).delete()
+    db.query(models.Subsidiary).filter(models.Subsidiary.holding_company_id == hc_id).delete()
+    db.commit()
 
     # Create Subsidiaries
     subsidiaries_data = [
@@ -46,38 +50,37 @@ def seed_dummy_data(
         roace = round(random.uniform(5.0, 25.0), 1)
         kpi = models.KPI(
             holding_company_id=hc_id,
-            subsidiary_id=sub.id,
-            metric_name="roace",
-            metric_value=roace,
+            name=f"ROACE - {sub.name}",
+            value=roace,
             unit="%",
-            period_date=datetime.utcnow()
+            trend="up" if roace > 15 else "down",
+            change=round(random.uniform(0.1, 3.0), 1)
         )
         db.add(kpi)
         
         rev_growth = round(random.uniform(-5.0, 30.0), 1)
         kpi2 = models.KPI(
             holding_company_id=hc_id,
-            subsidiary_id=sub.id,
-            metric_name="revenue_growth",
-            metric_value=rev_growth,
+            name=f"Revenue Growth - {sub.name}",
+            value=rev_growth,
             unit="%",
-            period_date=datetime.utcnow()
+            trend="up" if rev_growth > 0 else "down",
+            change=round(random.uniform(0.1, 5.0), 1)
         )
         db.add(kpi2)
         
     # Create AI Insights
     insights_data = [
-        {"title": "Cash Drag in FinServe", "description": "FinServe holds 40% of its assets in low-yield cash equivalents. Consider sweeping excess cash to holding company level.", "severity": "medium", "category": "liquidity"},
-        {"title": "FX Exposure Risk", "description": "High exposure to NGN depreciation detected in TechVentures. Recommend hedging strategies.", "severity": "high", "category": "risk"},
-        {"title": "Margin Expansion", "description": "MediCare Hospitals show a 300bps improvement in EBITDA margin this quarter due to optimized procurement.", "severity": "low", "category": "performance"},
-        {"title": "Capital Misallocation", "description": "EnergyPrime ROIC is below WACC. Re-evaluate ongoing CAPEX projects.", "severity": "critical", "category": "capital"},
+        {"title": "Cash Drag in FinServe", "description": "FinServe holds 40% of its assets in low-yield cash equivalents. Consider sweeping excess cash to holding company level.", "severity": "medium", "type": "alert"},
+        {"title": "FX Exposure Risk", "description": "High exposure to NGN depreciation detected in TechVentures. Recommend hedging strategies.", "severity": "high", "type": "risk"},
+        {"title": "Margin Expansion", "description": "MediCare Hospitals show a 300bps improvement in EBITDA margin this quarter due to optimized procurement.", "severity": "low", "type": "opportunity"},
+        {"title": "Capital Misallocation", "description": "EnergyPrime ROIC is below WACC. Re-evaluate ongoing CAPEX projects.", "severity": "critical", "type": "anomaly"},
     ]
     
     for i, data in enumerate(insights_data):
         insight = models.AIInsight(
             **data,
-            holding_company_id=hc_id,
-            related_subsidiary_id=subsidiary_records[i % len(subsidiary_records)].id,
+            subsidiary_id=subsidiary_records[i % len(subsidiary_records)].id,
         )
         db.add(insight)
         
@@ -86,11 +89,13 @@ def seed_dummy_data(
         holding_company_id=hc_id,
         title="Intercompany Loan to EnergyPrime",
         description="Provide a $2M internal loan from FinServe to EnergyPrime at 8% to avoid expensive external debt.",
-        recommendation_type="intercompany_loan",
+        type="internal_loan",
         amount=2000000,
-        confidence_score=0.85,
-        source_subsidiary_id=subsidiary_records[1].id,
-        target_subsidiary_id=subsidiary_records[4].id
+        currency="USD",
+        from_subsidiary=subsidiary_records[1].name,
+        to_subsidiary=subsidiary_records[4].name,
+        priority="high",
+        status="pending"
     )
     db.add(rec1)
 
