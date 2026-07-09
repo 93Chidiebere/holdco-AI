@@ -5,7 +5,7 @@ from typing import List
 import shutil
 from datetime import datetime
 
-from .. import models, schemas, database, auth
+import models, schemas, database, auth
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 
