@@ -11,7 +11,10 @@ const getAuthHeaders = () => {
 };
 
 // Generic fetcher
+const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+
 export const fetcher = async (url: string, options?: RequestInit) => {
+  const finalUrl = `${API_BASE_URL}${url}`;
   const headers: any = {
     ...getAuthHeaders(),
     ...options?.headers,
@@ -22,7 +25,7 @@ export const fetcher = async (url: string, options?: RequestInit) => {
     delete headers["Content-Type"];
   }
 
-  const res = await fetch(url, {
+  const res = await fetch(finalUrl, {
     ...options,
     headers,
   });
