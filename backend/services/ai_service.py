@@ -112,11 +112,18 @@ def generate_portfolio_insights(holding_company_name: str, subsidiaries_data: Li
         
     data_str = json.dumps(subsidiaries_data, indent=2)
     
+    from services.macro_service import fetch_macro_data
+    macro_data = fetch_macro_data()
+    macro_str = json.dumps(macro_data, indent=2)
+    
     prompt = f"""
     You are an expert AI financial analyst and Group CFO for a massive Holding Company (like Dangote Group or Heirs Holdings).
     Your job is to analyze the aggregated recent financial reports of ALL our subsidiaries and generate actionable strategic portfolio insights.
     
     Holding Company Name: {holding_company_name}
+    
+    Real-Time Macro-Economic Context (incorporate this into your reasoning):
+    {macro_str}
     
     Aggregated Financial Data for all subsidiaries (JSON):
     {data_str}
@@ -124,14 +131,14 @@ def generate_portfolio_insights(holding_company_name: str, subsidiaries_data: Li
     Tasks:
     1. Rank the subsidiaries by performance and margins.
     2. Identify cash-rich vs. cash-poor subsidiaries.
-    3. Recommend specific intra-company loans or bailouts (e.g., Take X amount from Subsidiary A and loan to Subsidiary B).
+    3. Recommend specific intra-company loans or bailouts (e.g., Take X amount from Subsidiary A and loan to Subsidiary B) taking into account macro factors like FX.
     4. Recommend group-wide cost reduction, resource reallocation, or growth strategies.
     
     Return your response strictly as a JSON object with the following structure:
     {{
       "insights": [
         {{
-          "title": "Short descriptive title (e.g., Heavy Cash Drag in Tech Subsidiary)",
+          "title": "Short descriptive title (e.g., Heavy Cash Drag in Tech Subsidiary due to FX)",
           "description": "Detailed explanation of what is happening across the portfolio and why.",
           "severity": "low", "medium", "high", or "critical",
           "type": "opportunity", "risk", "anomaly", or "alert"
@@ -165,6 +172,72 @@ def generate_portfolio_insights(holding_company_name: str, subsidiaries_data: Li
     except Exception as e:
         logger.error(f"Failed to generate portfolio insights: {str(e)}")
         return get_mock_portfolio_insights()
+
+def simulate_financial_scenario(portfolio_data: List[Dict[str, Any]], user_prompt: str) -> List[Dict[str, Any]]:
+    """
+    Runs a deterministic mathematical projection using Gemini to simulate a 12-month scenario.
+    """
+    if not API_KEY:
+        logger.warning("GEMINI_API_KEY not found. Returning mock simulation.")
+        return []
+        
+    from services.macro_service import fetch_macro_data
+    macro_data = fetch_macro_data()
+    
+    prompt = f"""
+    You are a strictly quantitative Financial Modeling AI.
+    I am providing you with the historical financial baseline of a holding company's subsidiaries and a live macro-economic context.
+    I am also giving you a scenario provided by the MD/CEO.
+    
+    Live Macro Context:
+    {json.dumps(macro_data, indent=2)}
+    
+    Historical Portfolio Baseline:
+    {json.dumps(portfolio_data, indent=2)}
+    
+    SCENARIO TO SIMULATE:
+    "{user_prompt}"
+    
+    TASK:
+    Generate a 12-month mathematical projection for EACH subsidiary mentioned in the baseline.
+    Apply standard financial reasoning (e.g., if inflation is 33%, operating costs should linearly increase by ~2.7% per month; if NGN devalues, imported COGS increase proportionally; if a loan is executed, cash decreases in source and increases in target, plus interest implications).
+    
+    Return your response strictly as a JSON array of objects. Do not include any text outside the JSON array. Do not use markdown like ```json.
+    
+    Structure of the JSON Array:
+    [
+      {{
+        "subsidiary": "Name of Subsidiary",
+        "projection": [
+          {{
+            "month": 1,
+            "revenue": (integer),
+            "cogs": (integer),
+            "opex": (integer),
+            "net_income": (integer),
+            "cash": (integer),
+            "roace": (float, e.g. 15.5)
+          }},
+          ... up to month 12
+        ]
+      }}
+    ]
+    """
+    
+    try:
+        model = genai.GenerativeModel('gemini-1.5-pro') # Using Pro for mathematical reasoning
+        response = model.generate_content(prompt)
+        response_text = response.text.strip()
+        
+        if response_text.startswith("```json"):
+            response_text = response_text[7:-3]
+        elif response_text.startswith("```"):
+            response_text = response_text[3:-3]
+            
+        return json.loads(response_text)
+    except Exception as e:
+        logger.error(f"Failed to run scenario simulation: {str(e)}")
+        return []
 
 def get_mock_portfolio_insights() -> Dict[str, Any]:
     return {

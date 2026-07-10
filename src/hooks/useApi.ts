@@ -147,3 +147,18 @@ export function useGeneratePortfolioInsights() {
     },
   });
 }
+
+export function useSimulateScenario() {
+  return useMutation({
+    mutationFn: (prompt: string) => fetcher("/api/scenarios/simulate", { 
+      method: "POST", 
+      body: JSON.stringify({ prompt }) 
+    }),
+    onSuccess: () => {
+      toast.success("Scenario Simulation Complete!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to run simulation");
+    },
+  });
+}
