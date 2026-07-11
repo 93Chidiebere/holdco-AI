@@ -41,7 +41,13 @@ export default function LoginPage() {
             Monitor, analyze, and optimize subsidiary performance with AI-driven insights and capital allocation recommendations.
           </p>
         </div>
-        <p className="text-sidebar-foreground text-sm">© 2026 HoldCo AI. All rights reserved.</p>
+        <div className="flex flex-col gap-2">
+          <p className="text-sidebar-foreground text-sm">© 2026 HoldCo AI. All rights reserved.</p>
+          <div className="flex gap-4 text-sm text-sidebar-foreground/70">
+            <Link to="/privacy" className="hover:text-sidebar-foreground transition-colors">Privacy Policy</Link>
+            <Link to="/terms" className="hover:text-sidebar-foreground transition-colors">Terms of Service</Link>
+          </div>
+        </div>
       </div>
 
       {/* Right panel */}
