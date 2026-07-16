@@ -147,3 +147,42 @@ class Scenario(Base):
     parameters = Column(Text) # JSON string of params
     results = Column(Text, nullable=True) # JSON string of results
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class ESGMetric(Base):
+    __tablename__ = "esg_metrics"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    subsidiary_id = Column(String, ForeignKey("subsidiaries.id"))
+    date = Column(DateTime)
+    carbon_emissions_mt = Column(Float, default=0) # Metric tons of CO2
+    energy_consumption_mwh = Column(Float, default=0) # MWh
+    water_usage_kl = Column(Float, default=0) # Kiloliters
+    women_in_leadership_pct = Column(Float, default=0)
+    employee_turnover_pct = Column(Float, default=0)
+    community_spend = Column(Float, default=0)
+    
+    subsidiary = relationship("Subsidiary")
+
+class InterCompanyTransaction(Base):
+    __tablename__ = "inter_company_transactions"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    holding_company_id = Column(String, ForeignKey("holding_companies.id"))
+    date = Column(DateTime)
+    selling_subsidiary_id = Column(String, ForeignKey("subsidiaries.id"))
+    buying_subsidiary_id = Column(String, ForeignKey("subsidiaries.id"))
+    amount = Column(Float)
+    currency = Column(String)
+    description = Column(String)
+    status = Column(String, default="pending_elimination") # eliminated, pending_elimination
+    
+    holding_company = relationship("HoldingCompany")
+    selling_subsidiary = relationship("Subsidiary", foreign_keys=[selling_subsidiary_id])
+    buying_subsidiary = relationship("Subsidiary", foreign_keys=[buying_subsidiary_id])
+
+class FXRate(Base):
+    __tablename__ = "fx_rates"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    base_currency = Column(String)
+    target_currency = Column(String)
+    rate = Column(Float)
+    date = Column(DateTime, default=datetime.utcnow)
+

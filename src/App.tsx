@@ -27,6 +27,8 @@ import PlatformOverviewPage from "./pages/PlatformOverviewPage";
 import PortalUploadPage from "./pages/PortalUploadPage";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import IntegrationsPage from "./pages/IntegrationsPage";
+import ESGPage from "./pages/ESGPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

@@ -25,6 +25,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Globe,
+  Plug,
+  Leaf
 } from "lucide-react";
 import { useState } from "react";
 
@@ -38,6 +40,8 @@ const navItems: { to: string; icon: typeof LayoutDashboard; label: string; permi
   { to: "/scenarios", icon: FlaskConical, label: "Scenario Modeling", permission: "view_scenarios" },
   { to: "/alerts", icon: Bell, label: "Alerts", permission: "view_alerts" },
   { to: "/export", icon: FileText, label: "Board Export", permission: "view_export" },
+  { to: "/esg", icon: Leaf, label: "ESG Command Center", permission: "view_dashboard" },
+  { to: "/integrations", icon: Plug, label: "Integrations Hub", permission: "view_settings" },
   { to: "/audit", icon: ClipboardList, label: "Audit Trail", permission: "view_audit" },
   { to: "/settings", icon: Settings, label: "Settings", permission: "view_settings" },
 ];

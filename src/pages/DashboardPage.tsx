@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,9 @@ import { Link } from "react-router-dom";
 import { useSubsidiaries, useKPIs, useInsights, useSeedData, useCurrency } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
 import { getCurrencySymbol } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const severityColors: Record<string, string> = {
   low: "bg-info/10 text-info border-info/20",
@@ -22,7 +25,14 @@ export default function DashboardPage() {
   const { data: kpis = [] } = useKPIs();
   const { data: insights = [] } = useInsights();
   const { mutate: seedData, isPending: isSeeding } = useSeedData();
-  const { data: currencyCode = "NGN" } = useCurrency();
+  const { data: defaultCurrency = "NGN" } = useCurrency();
+  const [currencyCode, setCurrencyCode] = useState(defaultCurrency);
+  const [applyEliminations, setApplyEliminations] = useState(true);
+  
+  useEffect(() => {
+    setCurrencyCode(defaultCurrency);
+  }, [defaultCurrency]);
+
   const sym = getCurrencySymbol(currencyCode);
 
   const portfolioStats = [
@@ -67,12 +77,29 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold tracking-tight">Executive Dashboard</h1>
             <p className="text-muted-foreground mt-1">Portfolio-wide performance overview</p>
           </div>
-          {!isLoadingSubs && (
-            <Button onClick={() => seedData()} disabled={isSeeding} variant="default" className="gap-2">
-              <Database className="w-4 h-4" />
-              {isSeeding ? "Seeding Data..." : "Seed Dummy Data"}
-            </Button>
-          )}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Base Currency:</span>
+              <Select value={currencyCode} onValueChange={setCurrencyCode}>
+                <SelectTrigger className="w-[100px] h-9">
+                  <SelectValue placeholder="Currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NGN">NGN (₦)</SelectItem>
+                  <SelectItem value="USD">USD ($)</SelectItem>
+                  <SelectItem value="GBP">GBP (£)</SelectItem>
+                  <SelectItem value="EUR">EUR (€)</SelectItem>
+                  <SelectItem value="XOF">XOF (CFA)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {!isLoadingSubs && (
+              <Button onClick={() => seedData()} disabled={isSeeding} variant="default" className="gap-2">
+                <Database className="w-4 h-4" />
+                {isSeeding ? "Seeding Data..." : "Seed Dummy Data"}
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -101,8 +128,16 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Revenue Trend */}
           <Card className="glass-card lg:col-span-2">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold">Revenue Trends (₦M)</CardTitle>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <CardTitle className="text-base font-semibold">Revenue Trends ({sym}M)</CardTitle>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="elimination-toggle" className="text-xs text-muted-foreground">Eliminate Intercompany</Label>
+                <Switch 
+                  id="elimination-toggle" 
+                  checked={applyEliminations} 
+                  onCheckedChange={setApplyEliminations} 
+                />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
