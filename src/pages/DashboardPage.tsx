@@ -3,7 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { mockRevenueData } from "@/data/mockData";
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, AlertTriangle, Building2, Brain, ArrowUpRight, Database } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Coins, BarChart3, AlertTriangle, Building2, Brain, ArrowUpRight, Database } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { Link } from "react-router-dom";
 import { useSubsidiaries, useKPIs, useInsights, useSeedData, useCurrency, useDashboardStats, useRevenueTrend } from "@/hooks/useApi";
@@ -42,7 +42,7 @@ export default function DashboardPage() {
     { 
       label: "Total Revenue", 
       value: dashboardStats ? `${sym}${(dashboardStats.total_revenue / 1000000).toFixed(2)}M` : `${sym}0.00M`, 
-      change: "Live", trend: "flat" as const, icon: DollarSign 
+      change: "Live", trend: "flat" as const, icon: Coins 
     },
     { 
       label: "Portfolio ROACE", 
@@ -55,8 +55,8 @@ export default function DashboardPage() {
 
   const processedKPIs = subsidiaries.map((sub: any) => {
     const subKpis = kpis.filter((k: any) => k.subsidiary_id === sub.id);
-    const roace = subKpis.find((k: any) => k.metric_name === 'roace')?.metric_value || 0;
-    const revGrowth = subKpis.find((k: any) => k.metric_name === 'revenue_growth')?.metric_value || 0;
+    const roace = subKpis.find((k: any) => k.name.toLowerCase().includes('roace'))?.value || 0;
+    const revGrowth = subKpis.find((k: any) => k.name.toLowerCase().includes('revenue'))?.value || 0;
     return {
       subsidiary: sub.name,
       industry: sub.industry,

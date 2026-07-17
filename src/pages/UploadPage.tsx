@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { ReportType, ReportingPeriod, ColumnMapping } from "@/types";
 import { useSubsidiaries } from "@/hooks/useApi";
-import { Upload, FileSpreadsheet, ArrowRight, ArrowLeft, Check, ShieldAlert, Sparkles, Save, RotateCcw, Building2, X, AlertTriangle, CheckCircle2, XCircle, Info } from "lucide-react";
+import { Upload, FileSpreadsheet, ArrowRight, ArrowLeft, Check, ShieldAlert, Sparkles, Save, RotateCcw, Building2, X, AlertTriangle, CheckCircle2, XCircle, Info, Download } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
@@ -335,12 +335,31 @@ export default function UploadPage() {
     setUsedTemplate(false);
   };
 
+  const downloadTemplate = () => {
+    const headers = ["Date", "Gross Revenue", "COGS", "Operating Expenses", "PBT", "Net Income", "Cash and Equivalents", "Total Assets", "Total Liabilities", "Total Equity", "Capital Expenditure", "Headcount"];
+    const csvContent = headers.join(",") + "\n" + 
+      "2023-12-31,5000000,2000000,1000000,2000000,1500000,500000,10000000,4000000,6000000,500000,50";
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'financial_data_template.csv');
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6 max-w-3xl">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Upload Financial Report</h1>
-          <p className="text-muted-foreground mt-1">Ingest and map financial data from your subsidiaries</p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Upload Financial Report</h1>
+            <p className="text-muted-foreground mt-1">Ingest and map financial data from your subsidiaries</p>
+          </div>
+          <Button variant="outline" onClick={downloadTemplate} className="gap-2 shrink-0">
+            <Download className="w-4 h-4" /> Download CSV Template
+          </Button>
         </div>
 
         {!canUpload && (

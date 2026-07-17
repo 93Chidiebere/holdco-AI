@@ -35,8 +35,8 @@ const rolePermissions: Record<string, Permission[]> = {
   admin: [
     "view_dashboard", "view_subsidiaries", "manage_subsidiaries",
     "upload_reports", "view_analytics", "view_insights",
-    "view_capital", "view_scenarios",
-    "view_alerts",
+    "view_capital", "manage_capital", "view_scenarios", "manage_scenarios",
+    "view_alerts", "manage_alert_rules",
     "view_export", "export_reports",
     "view_audit", "view_settings", "manage_team", "manage_company",
     "grant_access",

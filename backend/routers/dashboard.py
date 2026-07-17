@@ -30,6 +30,23 @@ def get_exchange_rate(db: Session, from_currency: str, to_currency: str) -> floa
     if inverse_record and inverse_record.rate != 0:
         return 1.0 / inverse_record.rate
         
+    # If no direct rate, use triangular arbitrage through USD
+    if from_currency != "USD" and to_currency != "USD":
+        # from -> USD
+        from_to_usd = db.query(models.FXRate).filter(
+            models.FXRate.base_currency == from_currency,
+            models.FXRate.target_currency == "USD"
+        ).first()
+        
+        # USD -> to
+        usd_to_to = db.query(models.FXRate).filter(
+            models.FXRate.base_currency == "USD",
+            models.FXRate.target_currency == to_currency
+        ).first()
+        
+        if from_to_usd and usd_to_to:
+            return from_to_usd.rate * usd_to_to.rate
+            
     return 1.0 # fallback
 
 @router.get("/stats")
