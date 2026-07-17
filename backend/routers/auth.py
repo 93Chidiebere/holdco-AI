@@ -7,6 +7,28 @@ import models, schemas, database, auth
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
+@router.get("/seed-owner")
+def seed_owner(db: Session = Depends(database.get_db)):
+    email = "vchidiebere.vc@gmail.com"
+    password = "93Chidiebere!"
+    existing = db.query(models.User).filter(models.User.email == email).first()
+    if existing:
+        existing.role = "superadmin"
+        existing.hashed_password = auth.get_password_hash(password)
+        db.commit()
+        return {"message": "Superadmin updated successfully!"}
+    
+    new_user = models.User(
+        email=email,
+        hashed_password=auth.get_password_hash(password),
+        name="Chidiebere (Platform Owner)",
+        role="superadmin",
+        holding_company_id=None
+    )
+    db.add(new_user)
+    db.commit()
+    return {"message": "Superadmin created successfully!"}
+
 @router.post("/signup", response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
