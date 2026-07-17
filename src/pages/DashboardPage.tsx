@@ -154,8 +154,11 @@ export default function DashboardPage() {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 18%)" />
                     <XAxis dataKey="month" stroke="hsl(220, 10%, 55%)" fontSize={12} />
-                    <YAxis stroke="hsl(220, 10%, 55%)" fontSize={12} />
-                    <Tooltip contentStyle={{ backgroundColor: "hsl(220, 25%, 12%)", border: "1px solid hsl(220, 20%, 18%)", borderRadius: "8px", color: "hsl(220, 10%, 93%)" }} />
+                    <YAxis stroke="hsl(220, 10%, 55%)" fontSize={12} width={65} tickFormatter={(val) => val >= 1e9 ? `${(val / 1e9).toFixed(1)}B` : val >= 1e6 ? `${(val / 1e6).toFixed(0)}M` : val >= 1e3 ? `${(val / 1e3).toFixed(0)}k` : val} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: "hsl(220, 25%, 12%)", border: "1px solid hsl(220, 20%, 18%)", borderRadius: "8px", color: "hsl(220, 10%, 93%)" }} 
+                      formatter={(value: number) => [`${sym}${value >= 1e9 ? (value / 1e9).toFixed(2) + 'B' : value >= 1e6 ? (value / 1e6).toFixed(2) + 'M' : value >= 1e3 ? (value / 1e3).toFixed(2) + 'k' : value.toLocaleString()}`, undefined]}
+                    />
                     {subsidiaries.map((sub: any, i: number) => (
                       <Area key={sub.id} type="monotone" dataKey={sub.name} stroke={colors[i % colors.length]} fill={`url(#grad-${i})`} strokeWidth={2} />
                     ))}
