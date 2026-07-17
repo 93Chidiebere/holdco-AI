@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import models
 from database import engine
-from routers import auth, subsidiaries, kpis, scenarios, reports, insights, recommendations, seed, portal, dashboard
+from routers import auth, subsidiaries, kpis, scenarios, reports, insights, recommendations, seed, portal, dashboard, system
 
 models.Base.metadata.create_all(bind=engine)
 
