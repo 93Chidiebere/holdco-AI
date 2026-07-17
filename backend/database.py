@@ -3,9 +3,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Default to SQLite for local dev if DATABASE_URL is not set
+# Default to SQLite for local dev if DATABASE_URL is not set or is empty
 # Railway will inject DATABASE_URL for PostgreSQL
-SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./holdco.db")
+SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+if not SQLALCHEMY_DATABASE_URL:
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./holdco.db"
 
 # Fix Postgres URL format for newer SQLAlchemy versions
 if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
