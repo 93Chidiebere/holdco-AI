@@ -179,7 +179,7 @@ def simulate_financial_scenario(portfolio_data: List[Dict[str, Any]], user_promp
     """
     if not API_KEY:
         logger.warning("GEMINI_API_KEY not found. Returning mock simulation.")
-        return []
+        return get_mock_simulation(portfolio_data)
         
     from services.macro_service import fetch_macro_data
     macro_data = fetch_macro_data()
@@ -259,3 +259,42 @@ def get_mock_portfolio_insights() -> Dict[str, Any]:
         }
       ]
     }
+
+def get_mock_simulation(portfolio_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    # Generate deterministic mock simulation based on baseline data
+    results = []
+    for sub in portfolio_data:
+        base_rev = 5000000
+        base_cash = 1000000
+        base_opex = 2000000
+        
+        if sub.get("recent_performance") and len(sub["recent_performance"]) > 0:
+            latest = sub["recent_performance"][0]
+            base_rev = latest.get("revenue", base_rev) or base_rev
+            base_cash = latest.get("cash", base_cash) or base_cash
+            base_opex = latest.get("opex", base_opex) or base_opex
+            
+        projection = []
+        for month in range(1, 13):
+            # Add some variance and trends
+            rev = int(base_rev * (1 + (month * 0.02)))
+            cash = int(base_cash * (1 + (month * 0.05)))
+            opex = int(base_opex * (1 + (month * 0.01)))
+            net = rev - opex
+            
+            projection.append({
+                "month": month,
+                "revenue": rev,
+                "cogs": int(rev * 0.4),
+                "opex": opex,
+                "net_income": net,
+                "cash": cash,
+                "roace": round(15.0 + (month * 0.5), 1)
+            })
+            
+        results.append({
+            "subsidiary": sub["subsidiary_name"],
+            "projection": projection
+        })
+        
+    return results
