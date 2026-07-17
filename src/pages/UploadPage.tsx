@@ -6,8 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { mockSubsidiaries } from "@/data/mockData";
 import type { ReportType, ReportingPeriod, ColumnMapping } from "@/types";
+import { useSubsidiaries } from "@/hooks/useApi";
 import { Upload, FileSpreadsheet, ArrowRight, ArrowLeft, Check, ShieldAlert, Sparkles, Save, RotateCcw, Building2, X, AlertTriangle, CheckCircle2, XCircle, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
@@ -123,6 +123,8 @@ export default function UploadPage() {
   const { hasPermission } = usePermissions();
   const canUpload = hasPermission("upload_reports");
 
+  const { data: subsidiaries = [], isLoading } = useSubsidiaries();
+  
   const [step, setStep] = useState(1);
   const [uploadMode, setUploadMode] = useState<UploadMode>("single");
 
@@ -267,10 +269,10 @@ export default function UploadPage() {
   };
 
   const selectAllSubsidiaries = () => {
-    if (selectedSubsidiaryIds.length === mockSubsidiaries.length) {
+    if (selectedSubsidiaryIds.length === subsidiaries.length) {
       setSelectedSubsidiaryIds([]);
     } else {
-      setSelectedSubsidiaryIds(mockSubsidiaries.map(s => s.id));
+      setSelectedSubsidiaryIds(subsidiaries.map((s: any) => s.id));
     }
   };
 
@@ -391,7 +393,7 @@ export default function UploadPage() {
                 <Select value={subsidiaryId} onValueChange={setSubsidiaryId}>
                   <SelectTrigger className="w-full"><SelectValue placeholder="Choose a subsidiary" /></SelectTrigger>
                   <SelectContent>
-                    {mockSubsidiaries.map(s => <SelectItem key={s.id} value={s.id}>{s.name} — {s.country}</SelectItem>)}
+                    {subsidiaries.map((s: any) => <SelectItem key={s.id} value={s.id}>{s.name} — {s.country}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -407,7 +409,7 @@ export default function UploadPage() {
                 </div>
                 <p className="text-sm text-muted-foreground">Choose 2 or more subsidiaries for bulk upload.</p>
                 <div className="space-y-2">
-                  {mockSubsidiaries.map(s => (
+                  {subsidiaries.map((s: any) => (
                     <label
                       key={s.id}
                       className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
@@ -428,7 +430,7 @@ export default function UploadPage() {
                 </div>
                 {selectedSubsidiaryIds.length > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    {selectedSubsidiaryIds.length} of {mockSubsidiaries.length} subsidiaries selected
+                    {selectedSubsidiaryIds.length} of {subsidiaries.length} subsidiaries selected
                   </p>
                 )}
               </div>
@@ -508,7 +510,7 @@ export default function UploadPage() {
                 <p className="text-sm text-muted-foreground">Attach a file for each selected subsidiary. All files should share the same column structure.</p>
                 <div className="space-y-3">
                   {bulkFiles.map(bf => {
-                    const sub = mockSubsidiaries.find(s => s.id === bf.subsidiaryId);
+                    const sub = subsidiaries.find((s: any) => s.id === bf.subsidiaryId);
                     return (
                       <div key={bf.subsidiaryId} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30">
                         <div className="flex-1 min-w-0">

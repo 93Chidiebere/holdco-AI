@@ -28,13 +28,7 @@ interface AlertRule {
   enabled: boolean;
 }
 
-const initialNotifications: Notification[] = [
-  { id: "1", type: "critical", title: "Liquidity ratio below threshold", description: "EnergyPrime's liquidity ratio dropped to 0.8, below the critical threshold of 1.0.", subsidiary: "EnergyPrime", timestamp: "2026-03-10T09:15:00", read: false },
-  { id: "2", type: "warning", title: "Operating cost spike detected", description: "EnergyPrime shows a 30% increase in operating costs vs 6-month trend.", subsidiary: "EnergyPrime", timestamp: "2026-03-09T14:30:00", read: false },
-  { id: "3", type: "warning", title: "Debt-to-equity ratio rising", description: "EnergyPrime's D/E ratio has risen to 1.5, above the 1.2 warning threshold.", subsidiary: "EnergyPrime", timestamp: "2026-03-08T11:00:00", read: true },
-  { id: "4", type: "info", title: "Revenue milestone reached", description: "FinServe Holdings achieved 4 consecutive months of 5%+ MoM growth.", subsidiary: "FinServe Holdings", timestamp: "2026-03-07T16:45:00", read: true },
-  { id: "5", type: "info", title: "Margin improvement noted", description: "TechVentures EBITDA margin improved by 2.1% over the last quarter.", subsidiary: "TechVentures Ltd", timestamp: "2026-03-06T10:20:00", read: true },
-];
+// Using real alerts from the backend.
 
 const initialRules: AlertRule[] = [
   { id: "1", metric: "Liquidity Ratio", condition: "below", threshold: 1.0, enabled: true },
@@ -50,16 +44,26 @@ const typeConfig = {
   info: { icon: Info, color: "text-info", bg: "bg-info/10", badge: "outline" as const },
 };
 
+import { useAlerts } from "@/hooks/useApi";
+
 export default function AlertsPage() {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const { data: fetchedAlerts = [] } = useAlerts();
+  
+  // We use local state to track "read" status since the backend currently doesn't persist it
+  const [readAlerts, setReadAlerts] = useState<Set<string>>(new Set());
   const [rules, setRules] = useState(initialRules);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = fetchedAlerts.filter((n: any) => !readAlerts.has(n.id)).length;
 
-  const markAllRead = () => setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const markAllRead = () => setReadAlerts(new Set(fetchedAlerts.map((n: any) => n.id)));
 
-  const markRead = (id: string) =>
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  const markRead = (id: string) => {
+    setReadAlerts((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  };
 
   const toggleRule = (id: string) =>
     setRules((prev) => prev.map((r) => (r.id === id ? { ...r, enabled: !r.enabled } : r)));
@@ -99,36 +103,44 @@ export default function AlertsPage() {
           </TabsList>
 
           <TabsContent value="notifications" className="space-y-3 mt-4">
-            {notifications.map((n) => {
-              const cfg = typeConfig[n.type];
-              const Icon = cfg.icon;
-              return (
-                <Card key={n.id} className={`transition-all ${!n.read ? "border-primary/30 shadow-sm" : "opacity-75"}`}>
-                  <CardContent className="flex items-start gap-4 py-4">
-                    <div className={`p-2 rounded-lg ${cfg.bg} shrink-0`}>
-                      <Icon className={`w-5 h-5 ${cfg.color}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-sm text-foreground">{n.title}</span>
-                        {!n.read && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
+            {fetchedAlerts.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Bell className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                <p>No alerts generated. Add subsidiary data to generate AI insights.</p>
+              </div>
+            ) : (
+              fetchedAlerts.map((n: any) => {
+                const isRead = readAlerts.has(n.id);
+                const cfg = typeConfig[n.type as keyof typeof typeConfig] || typeConfig.info;
+                const Icon = cfg.icon;
+                return (
+                  <Card key={n.id} className={`transition-all ${!isRead ? "border-primary/30 shadow-sm" : "opacity-75"}`}>
+                    <CardContent className="flex items-start gap-4 py-4">
+                      <div className={`p-2 rounded-lg ${cfg.bg} shrink-0`}>
+                        <Icon className={`w-5 h-5 ${cfg.color}`} />
                       </div>
-                      <p className="text-sm text-muted-foreground">{n.description}</p>
-                      <div className="flex items-center gap-3 mt-2">
-                        <Badge variant={cfg.badge} className="text-xs capitalize">{n.type}</Badge>
-                        <span className="text-xs text-muted-foreground">{n.subsidiary}</span>
-                        <span className="text-xs text-muted-foreground">{new Date(n.timestamp).toLocaleDateString()}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-sm text-foreground">{n.title}</span>
+                          {!isRead && <span className="w-2 h-2 rounded-full bg-primary shrink-0" />}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{n.description}</p>
+                        <div className="flex items-center gap-3 mt-2">
+                          <Badge variant={cfg.badge} className="text-xs capitalize">{n.type}</Badge>
+                          <span className="text-xs text-muted-foreground">{n.subsidiary}</span>
+                          <span className="text-xs text-muted-foreground">{new Date(n.timestamp).toLocaleDateString()}</span>
+                        </div>
                       </div>
-                    </div>
-                    {!n.read && (
-                      <Button variant="ghost" size="sm" onClick={() => markRead(n.id)}>
-                        <BellOff className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+                      {!isRead && (
+                        <Button variant="ghost" size="sm" onClick={() => markRead(n.id)}>
+                          <BellOff className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </TabsContent>
 
           <TabsContent value="rules" className="mt-4">

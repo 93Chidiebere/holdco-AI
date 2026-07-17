@@ -156,3 +156,33 @@ def seed_dummy_data(
     db.commit()
 
     return {"message": "Data seeded successfully"}
+
+@router.get("/wipe")
+def wipe_platform_data(
+    current_user: models.User = Depends(auth.get_current_user), 
+    db: Session = Depends(database.get_db)
+):
+    hc_id = current_user.holding_company_id
+    if not hc_id:
+        raise HTTPException(status_code=400, detail="User must belong to a holding company to wipe data")
+        
+    subsidiaries = db.query(models.Subsidiary).filter(models.Subsidiary.holding_company_id == hc_id).all()
+    sub_ids = [s.id for s in subsidiaries]
+    
+    # Clean data
+    if sub_ids:
+        db.query(models.NormalizedData).filter(models.NormalizedData.subsidiary_id.in_(sub_ids)).delete(synchronize_session=False)
+        db.query(models.AIInsight).filter(models.AIInsight.subsidiary_id.in_(sub_ids)).delete(synchronize_session=False)
+        db.query(models.ESGMetric).filter(models.ESGMetric.subsidiary_id.in_(sub_ids)).delete(synchronize_session=False)
+        db.query(models.SubsidiaryToken).filter(models.SubsidiaryToken.subsidiary_id.in_(sub_ids)).delete(synchronize_session=False)
+        db.query(models.FinancialReport).filter(models.FinancialReport.subsidiary_id.in_(sub_ids)).delete(synchronize_session=False)
+    
+    db.query(models.CapitalRecommendation).filter(models.CapitalRecommendation.holding_company_id == hc_id).delete(synchronize_session=False)
+    db.query(models.InterCompanyTransaction).filter(models.InterCompanyTransaction.holding_company_id == hc_id).delete(synchronize_session=False)
+    db.query(models.KPI).filter(models.KPI.holding_company_id == hc_id).delete(synchronize_session=False)
+    db.query(models.Scenario).filter(models.Scenario.holding_company_id == hc_id).delete(synchronize_session=False)
+    db.query(models.Subsidiary).filter(models.Subsidiary.holding_company_id == hc_id).delete(synchronize_session=False)
+    
+    db.commit()
+
+    return {"message": "Database wiped successfully. You now have a clean slate."}

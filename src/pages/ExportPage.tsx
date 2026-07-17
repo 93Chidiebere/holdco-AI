@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { FileText, Download, Calendar, Building2, BarChart3, Brain, Wallet } from "lucide-react";
-import { mockSubsidiaries, mockKPIData, mockRecommendations, mockInsights } from "@/data/mockData";
+import { useSubsidiaries, useKPIs, useInsights, useRecommendations } from "@/hooks/useApi";
 import { toast } from "@/components/ui/sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import PermissionTooltip from "@/components/PermissionTooltip";
@@ -27,7 +27,13 @@ const pastReports = [
 ];
 
 export default function ExportPage() {
+  const { data: mockSubsidiaries = [] } = useSubsidiaries();
+  const { data: mockKPIData = [] } = useKPIs();
+  const { data: mockInsights = [] } = useInsights();
+  const { data: mockRecommendations = [] } = useRecommendations();
+  
   const { hasPermission } = usePermissions();
+  const [selectedFormat, setSelectedFormat] = useState<"pdf" | "excel" | "pptx">("pdf");
   const canExport = hasPermission("export_reports");
   const [selectedPeriod, setSelectedPeriod] = useState("monthly");
   const [selectedSections, setSelectedSections] = useState<string[]>(reportSections.map((s) => s.id));

@@ -180,3 +180,18 @@ export function useRevenueTrend(currency: string, applyEliminations: boolean) {
     queryFn: () => fetcher(`/api/dashboard/revenue-trend?currency=${currency}&apply_eliminations=${applyEliminations}`),
   });
 }
+
+// System Data Hooks
+export function useAlerts() {
+  return useQuery({
+    queryKey: ["alerts"],
+    queryFn: () => fetcher("/api/system/alerts"),
+  });
+}
+
+export function useAuditLogs() {
+  return useQuery({
+    queryKey: ["audit-logs"],
+    queryFn: () => fetcher("/api/system/audit-logs"),
+  });
+}
