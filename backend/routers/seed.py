@@ -99,6 +99,60 @@ def seed_dummy_data(
     )
     db.add(rec1)
 
+    # Clean existing data for the new seed
+    db.query(models.NormalizedData).filter(models.NormalizedData.subsidiary_id.in_([s.id for s in subsidiary_records])).delete(synchronize_session=False)
+    db.query(models.InterCompanyTransaction).filter(models.InterCompanyTransaction.holding_company_id == hc_id).delete(synchronize_session=False)
+    db.query(models.FXRate).delete(synchronize_session=False)
+
+    # Create FX Rates
+    fx_rates = [
+        ("USD", 1.0),
+        ("NGN", 1500.0),
+        ("KES", 130.0),
+        ("ZAR", 19.0),
+        ("GHS", 14.0),
+        ("EUR", 0.92),
+        ("GBP", 0.79),
+        ("XOF", 600.0)
+    ]
+    for target, rate in fx_rates:
+        if target != "USD":
+            db.add(models.FXRate(base_currency="USD", target_currency=target, rate=rate))
+            db.add(models.FXRate(base_currency=target, target_currency="USD", rate=1.0/rate))
+
+    # Create Normalized Data for the last 12 months
+    for sub in subsidiary_records:
+        base_revenue = random.uniform(1000000, 5000000)
+        for i in range(12):
+            date = datetime.utcnow() - timedelta(days=30 * i)
+            rev = base_revenue * (1 + random.uniform(-0.1, 0.2))
+            cogs = rev * random.uniform(0.3, 0.6)
+            opex = rev * random.uniform(0.1, 0.3)
+            pbt = rev - cogs - opex
+            db.add(models.NormalizedData(
+                subsidiary_id=sub.id,
+                date=date,
+                gross_revenue=rev,
+                cogs=cogs,
+                operating_expenses=opex,
+                pbt=pbt,
+                net_income=pbt * 0.7,
+                total_assets=rev * 3,
+                total_equity=rev * 1.5,
+            ))
+            
+    # Create some Intercompany Transactions for eliminations
+    db.add(models.InterCompanyTransaction(
+        holding_company_id=hc_id,
+        date=datetime.utcnow(),
+        selling_subsidiary_id=subsidiary_records[0].id,
+        buying_subsidiary_id=subsidiary_records[1].id,
+        amount=500000,
+        currency="NGN",
+        description="IT Services provided by TechVentures",
+        status="pending_elimination"
+    ))
+
     db.commit()
 
     return {"message": "Data seeded successfully"}

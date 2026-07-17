@@ -6,7 +6,7 @@ import { mockRevenueData } from "@/data/mockData";
 import { TrendingUp, TrendingDown, DollarSign, BarChart3, AlertTriangle, Building2, Brain, ArrowUpRight, Database } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { Link } from "react-router-dom";
-import { useSubsidiaries, useKPIs, useInsights, useSeedData, useCurrency } from "@/hooks/useApi";
+import { useSubsidiaries, useKPIs, useInsights, useSeedData, useCurrency, useDashboardStats, useRevenueTrend } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
 import { getCurrencySymbol } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -35,9 +35,20 @@ export default function DashboardPage() {
 
   const sym = getCurrencySymbol(currencyCode);
 
+  const { data: dashboardStats } = useDashboardStats(currencyCode, applyEliminations);
+  const { data: revenueTrend } = useRevenueTrend(currencyCode, applyEliminations);
+
   const portfolioStats = [
-    { label: "Total Revenue", value: `${sym}2.87B`, change: "+12.4%", trend: "up" as const, icon: DollarSign },
-    { label: "Portfolio ROACE", value: "15.7%", change: "+2.1%", trend: "up" as const, icon: BarChart3 },
+    { 
+      label: "Total Revenue", 
+      value: dashboardStats ? `${sym}${(dashboardStats.total_revenue / 1000000).toFixed(2)}M` : `${sym}0.00M`, 
+      change: "Live", trend: "flat" as const, icon: DollarSign 
+    },
+    { 
+      label: "Portfolio ROACE", 
+      value: dashboardStats ? `${dashboardStats.portfolio_roace.toFixed(1)}%` : "0.0%", 
+      change: "Live", trend: "up" as const, icon: BarChart3 
+    },
     { label: "Active Subsidiaries", value: subsidiaries.length.toString(), change: "0", trend: "flat" as const, icon: Building2 },
     { label: "Active Alerts", value: insights.filter((i: any) => i.severity === 'high' || i.severity === 'critical').length.toString(), change: "+1", trend: "down" as const, icon: AlertTriangle },
   ];
@@ -54,17 +65,7 @@ export default function DashboardPage() {
     };
   });
 
-  const generatedRevenueData = useMemo(() => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return months.map((month, i) => {
-      const data: any = { month };
-      subsidiaries.forEach((sub: any, index: number) => {
-        const base = 50 + (index * 20);
-        data[sub.name] = base + (i * 5) + Math.random() * 15;
-      });
-      return data;
-    });
-  }, [subsidiaries]);
+  const generatedRevenueData = revenueTrend || [];
 
   const colors = ["hsl(160, 84%, 39%)", "hsl(217, 91%, 60%)", "hsl(0, 84%, 60%)", "hsl(38, 92%, 50%)", "hsl(280, 65%, 60%)"];
 

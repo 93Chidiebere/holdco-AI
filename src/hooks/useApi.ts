@@ -165,3 +165,18 @@ export function useSimulateScenario() {
     },
   });
 }
+
+// Hooks for Dashboard Data
+export function useDashboardStats(currency: string, applyEliminations: boolean) {
+  return useQuery({
+    queryKey: ["dashboardStats", currency, applyEliminations],
+    queryFn: () => fetcher(`/api/dashboard/stats?currency=${currency}&apply_eliminations=${applyEliminations}`),
+  });
+}
+
+export function useRevenueTrend(currency: string, applyEliminations: boolean) {
+  return useQuery({
+    queryKey: ["revenueTrend", currency, applyEliminations],
+    queryFn: () => fetcher(`/api/dashboard/revenue-trend?currency=${currency}&apply_eliminations=${applyEliminations}`),
+  });
+}
