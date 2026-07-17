@@ -64,6 +64,8 @@ function AppRoutes() {
       <Route path="/export" element={<ProtectedRoute><ProtectedPage permission="view_export"><ExportPage /></ProtectedPage></ProtectedRoute>} />
       <Route path="/audit" element={<ProtectedRoute><ProtectedPage permission="view_audit"><AuditTrailPage /></ProtectedPage></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><ProtectedPage permission="view_settings"><SettingsPage /></ProtectedPage></ProtectedRoute>} />
+      <Route path="/esg" element={<ProtectedRoute><ESGPage /></ProtectedRoute>} />
+      <Route path="/integrations" element={<ProtectedRoute><IntegrationsPage /></ProtectedRoute>} />
       <Route path="/portal/:token" element={<PortalUploadPage />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/terms" element={<TermsOfService />} />
