@@ -53,7 +53,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: formData.toString()
       });
 
-      if (!res.ok) return false;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || "Incorrect email or password.");
+        return false;
+      }
       const data = await res.json();
       setToken(data.access_token);
       localStorage.setItem("holdco_token", data.access_token);
@@ -69,7 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return true;
     } catch (e) {
-      console.error(e);
+      console.error("Login fetch error:", e);
+      alert("Network error: Could not connect to the API. Did you configure VITE_API_URL in Vercel correctly?");
       return false;
     }
   };
