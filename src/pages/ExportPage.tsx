@@ -27,10 +27,10 @@ const pastReports = [
 ];
 
 export default function ExportPage() {
-  const { data: mockSubsidiaries = [] } = useSubsidiaries();
-  const { data: mockKPIData = [] } = useKPIs();
-  const { data: mockInsights = [] } = useInsights();
-  const { data: mockRecommendations = [] } = useRecommendations();
+  const { data: subsidiaries = [] } = useSubsidiaries();
+  const { data: kpiData = [] } = useKPIs();
+  const { data: insights = [] } = useInsights();
+  const { data: recommendations = [] } = useRecommendations();
   
   const { hasPermission } = usePermissions();
   const [selectedFormat, setSelectedFormat] = useState<"pdf" | "excel" | "pptx">("pdf");
@@ -132,10 +132,10 @@ export default function ExportPage() {
                   <div className="p-4 rounded-lg bg-muted/30 border border-border">
                     <h3 className="font-semibold text-foreground mb-2">Executive Summary</h3>
                     <p className="text-sm text-muted-foreground">
-                      Portfolio of {mockSubsidiaries.length} subsidiaries across {new Set(mockSubsidiaries.map((s) => s.industry)).size} industries.
-                      Average ROACE: {(mockKPIData.reduce((a, k) => a + k.roace, 0) / mockKPIData.length).toFixed(1)}%.
-                      {mockInsights.filter((i) => i.severity === "critical").length} critical alerts require immediate attention.
-                      {mockRecommendations.length} capital recommendations pending review.
+                      Portfolio of {subsidiaries.length} subsidiaries across {new Set(subsidiaries.map((s) => s.industry)).size} industries.
+                      Average ROACE: {(kpiData.reduce((a, k) => a + k.roace, 0) / (kpiData.length || 1)).toFixed(1)}%.
+                      {insights.filter((i) => i.severity === "critical").length} critical alerts require immediate attention.
+                      {recommendations.length} capital recommendations pending review.
                     </p>
                   </div>
                 )}
@@ -143,7 +143,7 @@ export default function ExportPage() {
                   <div className="p-4 rounded-lg bg-muted/30 border border-border">
                     <h3 className="font-semibold text-foreground mb-2">KPI Performance Overview</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {mockKPIData.map((kpi) => (
+                      {kpiData.map((kpi) => (
                         <div key={kpi.subsidiary} className="text-sm">
                           <p className="font-medium text-foreground">{kpi.subsidiary}</p>
                           <p className="text-muted-foreground">ROACE: {kpi.roace}% | Growth: {kpi.revenue_growth}%</p>

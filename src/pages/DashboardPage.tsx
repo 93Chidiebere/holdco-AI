@@ -2,7 +2,6 @@ import { useMemo, useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockRevenueData } from "@/data/mockData";
 import { TrendingUp, TrendingDown, DollarSign, Coins, BarChart3, AlertTriangle, Building2, Brain, ArrowUpRight, Database } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { Link } from "react-router-dom";
