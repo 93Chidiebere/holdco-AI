@@ -3,6 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Leaf, Newspaper, Globe, TrendingUp, AlertCircle, CalendarDays, Loader2 } from "lucide-react";
+import { fetcher } from "@/hooks/useApi";
 
 interface NewsItem {
   id: string;
@@ -22,9 +23,7 @@ export default function ESGPage() {
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const res = await fetch("/api/system/esg-news");
-        if (!res.ok) throw new Error("Failed to fetch news");
-        const data = await res.json();
+        const data = await fetcher("/api/system/esg-news");
         setNews(data);
       } catch (err) {
         console.error(err);
