@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { ReportType, ReportingPeriod, ColumnMapping } from "@/types";
 import { useSubsidiaries } from "@/hooks/useApi";
-import { Upload, FileSpreadsheet, ArrowRight, ArrowLeft, Check, ShieldAlert, Sparkles, Save, RotateCcw, Building2, X, AlertTriangle, CheckCircle2, XCircle, Info, Download } from "lucide-react";
+import { Upload, FileSpreadsheet, ArrowRight, ArrowLeft, Check, ShieldAlert, Sparkles, Save, RotateCcw, Building2, X, AlertTriangle, CheckCircle2, XCircle, Info, Download, Cloud, Box, HardDrive } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
@@ -423,7 +423,7 @@ export default function UploadPage() {
                 <div className="flex items-center justify-between">
                   <Label className="text-base font-semibold">Select Subsidiaries</Label>
                   <Button variant="ghost" size="sm" onClick={selectAllSubsidiaries} className="text-xs">
-                    {selectedSubsidiaryIds.length === mockSubsidiaries.length ? "Deselect All" : "Select All"}
+                    {selectedSubsidiaryIds.length === subsidiaries.length ? "Deselect All" : "Select All"}
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">Choose 2 or more subsidiaries for bulk upload.</p>
@@ -499,6 +499,19 @@ export default function UploadPage() {
             {step === 4 && uploadMode === "single" && (
               <div className="space-y-4">
                 <Label className="text-base font-semibold">Upload File</Label>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                  <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2 bg-primary/5 border-primary/20" onClick={() => document.getElementById("file-input")?.click()}>
+                    <HardDrive className="w-5 h-5 text-primary" /> Local Device
+                  </Button>
+                  <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors" onClick={() => toast.info("Opening Google Drive file picker...")}>
+                    <Cloud className="w-5 h-5" /> Google Drive
+                  </Button>
+                  <Button variant="outline" className="h-20 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-primary transition-colors" onClick={() => toast.info("Opening Dropbox file picker...")}>
+                    <Box className="w-5 h-5" /> Dropbox
+                  </Button>
+                </div>
+
                 <div
                   onDrop={handleDrop}
                   onDragOver={e => { e.preventDefault(); setDragOver(true); }}
@@ -509,7 +522,7 @@ export default function UploadPage() {
                   <Upload className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
                   {file ? (
                     <div>
-                      <p className="font-medium">{file.name}</p>
+                      <p className="font-medium text-primary">{file.name}</p>
                       <p className="text-sm text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
                     </div>
                   ) : (
@@ -526,37 +539,60 @@ export default function UploadPage() {
             {step === 4 && uploadMode === "bulk" && (
               <div className="space-y-4">
                 <Label className="text-base font-semibold">Upload Files for Each Subsidiary</Label>
-                <p className="text-sm text-muted-foreground">Attach a file for each selected subsidiary. All files should share the same column structure.</p>
+                
+                <div className="flex flex-wrap items-center gap-3 bg-muted/30 p-3 rounded-lg border border-border">
+                  <p className="text-sm font-medium mr-auto">Bulk Import From Cloud:</p>
+                  <Button variant="outline" size="sm" onClick={() => toast.info("Connecting to Google Drive...")} className="gap-2">
+                    <Cloud className="w-4 h-4" /> Drive
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => toast.info("Connecting to Dropbox...")} className="gap-2">
+                    <Box className="w-4 h-4" /> Dropbox
+                  </Button>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mt-2">Or attach a local file for each selected subsidiary individually.</p>
                 <div className="space-y-3">
                   {bulkFiles.map(bf => {
                     const sub = subsidiaries.find((s: any) => s.id === bf.subsidiaryId);
                     return (
-                      <div key={bf.subsidiaryId} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30">
+                      <div key={bf.subsidiaryId} className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border border-border bg-muted/10 transition-colors hover:bg-muted/30">
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{sub?.name}</p>
                           {bf.file ? (
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <Check className="w-3 h-3 text-green-600" />
-                              <span className="text-xs text-muted-foreground truncate">{bf.file.name}</span>
+                            <div className="flex items-center gap-1.5 mt-1">
+                              <Check className="w-3 h-3 text-green-600 shrink-0" />
+                              <span className="text-xs text-primary font-medium truncate">{bf.file.name}</span>
                               <button
                                 onClick={() => setBulkFiles(prev => prev.map(b => b.subsidiaryId === bf.subsidiaryId ? { ...b, file: null } : b))}
-                                className="text-muted-foreground hover:text-destructive ml-1"
+                                className="text-muted-foreground hover:text-destructive ml-1 transition-colors"
                               >
                                 <X className="w-3 h-3" />
                               </button>
                             </div>
                           ) : (
-                            <span className="text-xs text-muted-foreground">No file selected</span>
+                            <span className="text-xs text-muted-foreground block mt-1">No file selected</span>
                           )}
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => document.getElementById(`bulk-file-${bf.subsidiaryId}`)?.click()}
-                          className="shrink-0 text-xs"
-                        >
-                          {bf.file ? "Replace" : "Choose File"}
-                        </Button>
+                        <div className="flex gap-2 shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toast.info(`Opening Drive picker for ${sub?.name}...`)}
+                            className="w-8 h-8 p-0 text-muted-foreground hover:text-primary"
+                            title="Import from Cloud"
+                          >
+                            <Cloud className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => document.getElementById(`bulk-file-${bf.subsidiaryId}`)?.click()}
+                            className="text-xs"
+                          >
+                            <HardDrive className="w-4 h-4 mr-2" />
+                            {bf.file ? "Replace File" : "Local Upload"}
+                          </Button>
+                        </div>
                         <input
                           id={`bulk-file-${bf.subsidiaryId}`}
                           type="file"

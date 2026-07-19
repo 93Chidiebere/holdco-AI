@@ -3,6 +3,13 @@ from sqlalchemy.orm import Session
 from typing import List
 
 import models, auth, database
+import google.generativeai as genai
+import json
+import os
+import logging
+from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/system", tags=["system"])
 
@@ -77,3 +84,66 @@ def get_audit_logs(current_user: models.User = Depends(auth.get_current_user), d
     # Since we don't have an Audit Log table yet, we return an empty array
     # to replace the mock data. When Audit Logs are implemented, query them here.
     return []
+
+@router.get("/esg-news")
+def get_esg_news(current_user: models.User = Depends(auth.get_current_user)):
+    """Fetches real-world ESG news using Gemini AI"""
+    API_KEY = os.environ.get("GEMINI_API_KEY")
+    if not API_KEY:
+        return [
+            {
+                "id": "mock-1",
+                "title": "Global Carbon Emissions Hit New Lows Following EV Adoption",
+                "snippet": "Major corporations have reported a 15% drop in supply chain emissions as electric vehicle adoption accelerates across logistics networks.",
+                "source": "Simulated ESG News",
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "impact": "Positive",
+                "category": "Environmental"
+            }
+        ]
+        
+    try:
+        genai.configure(api_key=API_KEY)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        prompt = """
+        You are a real-time ESG news aggregator.
+        Generate a list of 5 real-world, highly relevant news headlines and summaries about Corporate ESG (Environmental, Social, and Governance) from today or the last few days.
+        They must be grounded in reality (e.g. real companies, real policies, real events).
+        
+        Return your response STRICTLY as a JSON array of objects. Do not use markdown blocks like ```json.
+        Structure:
+        [
+          {
+            "id": "unique_string_id",
+            "title": "News headline",
+            "snippet": "2-3 sentence summary of the news.",
+            "source": "Name of the news outlet (e.g. Bloomberg, Reuters)",
+            "date": "YYYY-MM-DD",
+            "impact": "Positive", "Negative", or "Neutral",
+            "category": "Environmental", "Social", or "Governance"
+          }
+        ]
+        """
+        
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        if text.startswith("```json"):
+            text = text[7:-3]
+        elif text.startswith("```"):
+            text = text[3:-3]
+            
+        return json.loads(text)
+    except Exception as e:
+        logger.error(f"Failed to fetch ESG news: {str(e)}")
+        return [
+             {
+                "id": "error-1",
+                "title": "Failed to fetch real-time news",
+                "snippet": "The AI aggregator encountered an error or rate limit.",
+                "source": "System",
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "impact": "Neutral",
+                "category": "Governance"
+            }
+        ]
