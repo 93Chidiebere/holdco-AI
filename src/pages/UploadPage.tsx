@@ -16,6 +16,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import PermissionTooltip from "@/components/PermissionTooltip";
 import { autoMapColumns, findTemplate, saveTemplate } from "@/lib/columnMapper";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import Papa from "papaparse";
 
 const reportTypes: { value: ReportType; label: string }[] = [
   { value: "income_statement", label: "Income Statement" },
@@ -148,6 +149,35 @@ export default function UploadPage() {
   const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
   const [validationRun, setValidationRun] = useState(false);
 
+  // File parsing state
+  const [parsedColumns, setParsedColumns] = useState<string[]>([]);
+  const [parsedRows, setParsedRows] = useState<Record<string, string>[]>([]);
+
+  // Parse file when it changes
+  useEffect(() => {
+    const fileToParse = uploadMode === "single" ? file : bulkFiles.find(bf => bf.file)?.file;
+    if (fileToParse) {
+      Papa.parse(fileToParse, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          if (results.meta.fields) {
+            setParsedColumns(results.meta.fields);
+            setParsedRows(results.data.slice(0, 100) as Record<string, string>[]);
+            setMappings(results.meta.fields.map(col => ({ source_column: col, target_field: "" })));
+            setUsedTemplate(false);
+            setValidationRun(false);
+          }
+        }
+      });
+    } else {
+      setParsedColumns([]);
+      setParsedRows([]);
+      setMappings(simulatedColumns.map(col => ({ source_column: col, target_field: "" })));
+      setUsedTemplate(false);
+    }
+  }, [file, bulkFiles, uploadMode]);
+
   // Sync bulk files when subsidiaries change
   useEffect(() => {
     if (uploadMode === "bulk") {
@@ -166,11 +196,12 @@ export default function UploadPage() {
   // Auto-map when entering step 5
   useEffect(() => {
     if (step === 5 && !usedTemplate) {
+      const cols = parsedColumns.length > 0 ? parsedColumns : simulatedColumns;
       const primarySubId = uploadMode === "single" ? subsidiaryId : selectedSubsidiaryIds[0];
       if (primarySubId && reportType) {
         const template = findTemplate(primarySubId, reportType);
         if (template) {
-          const restored = simulatedColumns.map(col => ({
+          const restored = cols.map(col => ({
             source_column: col,
             target_field: template.mappings[col] || "",
           }));
@@ -182,7 +213,7 @@ export default function UploadPage() {
         }
       }
 
-      const suggestions = autoMapColumns(simulatedColumns);
+      const suggestions = autoMapColumns(cols);
       const newMappings = suggestions.map(s => ({
         source_column: s.sourceColumn,
         target_field: s.suggestedField,
@@ -196,15 +227,16 @@ export default function UploadPage() {
 
       const matched = suggestions.filter(s => s.suggestedField).length;
       if (matched > 0) {
-        toast.success(`Auto-mapped ${matched} of ${simulatedColumns.length} columns.`, { icon: <Sparkles className="w-4 h-4" /> });
+        toast.success(`Auto-mapped ${matched} of ${cols.length} columns.`, { icon: <Sparkles className="w-4 h-4" /> });
       }
     }
-  }, [step, subsidiaryId, selectedSubsidiaryIds, reportType, usedTemplate, uploadMode]);
+  }, [step, subsidiaryId, selectedSubsidiaryIds, reportType, usedTemplate, uploadMode, parsedColumns]);
 
   // Run validation when entering step 6
   useEffect(() => {
     if (step === 6 && !validationRun) {
-      const issues = runValidation(mappings, simulatedRows);
+      const rowsToValidate = parsedRows.length > 0 ? parsedRows : simulatedRows;
+      const issues = runValidation(mappings, rowsToValidate);
       setValidationIssues(issues);
       setValidationRun(true);
       const errors = issues.filter(i => i.severity === "error").length;
@@ -286,7 +318,8 @@ export default function UploadPage() {
   };
 
   const resetAutoMap = () => {
-    const suggestions = autoMapColumns(simulatedColumns);
+    const cols = parsedColumns.length > 0 ? parsedColumns : simulatedColumns;
+    const suggestions = autoMapColumns(cols);
     const newMappings = suggestions.map(s => ({
       source_column: s.sourceColumn,
       target_field: s.suggestedField,
@@ -688,7 +721,8 @@ export default function UploadPage() {
                 {(() => {
                   const errors = validationIssues.filter(i => i.severity === "error");
                   const warnings = validationIssues.filter(i => i.severity === "warning");
-                  const totalChecked = mappings.filter(m => m.target_field && m.target_field !== "skip").length * simulatedRows.length + requiredFields.length;
+                  const rowsToValidate = parsedRows.length > 0 ? parsedRows : simulatedRows;
+                  const totalChecked = mappings.filter(m => m.target_field && m.target_field !== "skip").length * rowsToValidate.length + requiredFields.length;
                   const passRate = totalChecked > 0 ? Math.round(((totalChecked - errors.length - warnings.length) / totalChecked) * 100) : 100;
 
                   return (
