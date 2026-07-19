@@ -33,17 +33,6 @@ const periods: { value: ReportingPeriod; label: string }[] = [
 
 const standardFields = ["revenue", "expenses", "net_income", "cash", "debt", "assets", "liabilities", "equity", "operating_costs", "ebitda", "capex", "operating_cashflow"];
 
-const simulatedColumns = ["Revenue (₦)", "Operating Costs", "Net Profit", "Total Assets", "Current Liabilities", "Shareholder Equity"];
-
-// Simulated row data for validation
-const simulatedRows: Record<string, string>[] = [
-  { "Revenue (₦)": "5200000", "Operating Costs": "3100000", "Net Profit": "1400000", "Total Assets": "12000000", "Current Liabilities": "2300000", "Shareholder Equity": "8500000" },
-  { "Revenue (₦)": "4800000", "Operating Costs": "", "Net Profit": "abc", "Total Assets": "11500000", "Current Liabilities": "2100000", "Shareholder Equity": "8200000" },
-  { "Revenue (₦)": "", "Operating Costs": "2900000", "Net Profit": "1350000", "Total Assets": "-500", "Current Liabilities": "2050000", "Shareholder Equity": "" },
-  { "Revenue (₦)": "5500000", "Operating Costs": "3300000", "Net Profit": "1500000", "Total Assets": "12500000", "Current Liabilities": "N/A", "Shareholder Equity": "9000000" },
-  { "Revenue (₦)": "5100000", "Operating Costs": "3050000", "Net Profit": "1420000", "Total Assets": "12200000", "Current Liabilities": "2250000", "Shareholder Equity": "8600000" },
-];
-
 const requiredFields: string[] = [];
 
 interface ValidationIssue {
@@ -141,9 +130,7 @@ export default function UploadPage() {
   const [period, setPeriod] = useState<ReportingPeriod | "">("");
   const [file, setFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [mappings, setMappings] = useState<ColumnMapping[]>(
-    simulatedColumns.map(col => ({ source_column: col, target_field: "" }))
-  );
+  const [mappings, setMappings] = useState<ColumnMapping[]>([]);
   const [confidences, setConfidences] = useState<Record<string, number>>({});
   const [usedTemplate, setUsedTemplate] = useState(false);
   const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
@@ -181,7 +168,7 @@ export default function UploadPage() {
     } else {
       setParsedColumns([]);
       setParsedRows([]);
-      setMappings(simulatedColumns.map(col => ({ source_column: col, target_field: "" })));
+      setMappings([]);
       setUsedTemplate(false);
     }
   }, [file, bulkFiles, uploadMode]);
@@ -204,7 +191,8 @@ export default function UploadPage() {
   // Auto-map when entering step 5
   useEffect(() => {
     if (step === 5 && !usedTemplate) {
-      const cols = parsedColumns.length > 0 ? parsedColumns : simulatedColumns;
+      const cols = parsedColumns;
+      if (cols.length === 0) return;
       const primarySubId = uploadMode === "single" ? subsidiaryId : selectedSubsidiaryIds[0];
       if (primarySubId && reportType) {
         const template = findTemplate(primarySubId, reportType);
@@ -333,7 +321,11 @@ export default function UploadPage() {
   };
 
   const resetAutoMap = () => {
-    const cols = parsedColumns.length > 0 ? parsedColumns : simulatedColumns;
+    const cols = parsedColumns;
+    if (cols.length === 0) {
+      toast.error("Please upload a valid file first.");
+      return;
+    }
     const suggestions = autoMapColumns(cols);
     const newMappings = suggestions.map(s => ({
       source_column: s.sourceColumn,
@@ -378,7 +370,7 @@ export default function UploadPage() {
     setReportType("");
     setPeriod("");
     setFile(null);
-    setMappings(simulatedColumns.map(col => ({ source_column: col, target_field: "" })));
+    setMappings([]);
     setConfidences({});
     setUsedTemplate(false);
   };
