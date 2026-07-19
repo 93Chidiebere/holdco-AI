@@ -64,7 +64,7 @@ def generate_portfolio(
     records_added = 0
     for ins in ai_response.get("insights", []):
         db.add(models.AIInsight(
-            # No subsidiary id attached implies it's portfolio level, or we just tag type
+            subsidiary_id=subs[0].id, # Assign to first subsidiary so it bypasses join filter
             type="portfolio_" + ins.get("type", "alert"),
             severity=ins.get("severity", "medium"),
             title=ins.get("title", "Portfolio Insight"),

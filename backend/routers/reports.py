@@ -116,4 +116,59 @@ def submit_normalized_data(
             
     db.commit()
 
+    # -------------------------------------------------------------------------
+    # TRIGGER AI INSIGHT GENERATION
+    # -------------------------------------------------------------------------
+    try:
+        from services.ai_service import generate_financial_insights
+        
+        # Prepare historical data to send to LLM
+        recent_data = db.query(models.NormalizedData).filter(
+            models.NormalizedData.subsidiary_id == subsidiary.id
+        ).order_by(models.NormalizedData.date.desc()).limit(12).all()
+        
+        # Convert to dicts for LLM
+        history_dicts = []
+        for d in recent_data:
+            history_dicts.append({
+                "date": d.date.strftime("%Y-%m"),
+                "gross_revenue": d.gross_revenue,
+                "cogs": d.cogs,
+                "operating_expenses": d.operating_expenses,
+                "pbt": d.pbt,
+                "net_income": d.net_income,
+                "cash_balance": d.cash_and_equivalents
+            })
+            
+        ai_response = generate_financial_insights(subsidiary.name, history_dicts)
+        
+        # Save Insights
+        for ins in ai_response.get("insights", []):
+            db.add(models.AIInsight(
+                subsidiary_id=subsidiary.id,
+                title=ins.get("title", "AI Insight"),
+                description=ins.get("description", ""),
+                severity=ins.get("severity", "medium"),
+                type=ins.get("type", "opportunity")
+            ))
+            
+        # Save Recommendations
+        for rec in ai_response.get("recommendations", []):
+            db.add(models.CapitalRecommendation(
+                holding_company_id=subsidiary.holding_company_id,
+                title=rec.get("title", "Capital Recommendation"),
+                description=rec.get("description", ""),
+                type=rec.get("type", "growth_investment"),
+                amount=rec.get("amount", 0),
+                currency=subsidiary.currency,
+                from_subsidiary=subsidiary.name,
+                priority=rec.get("priority", "medium"),
+                status="pending"
+            ))
+            
+        db.commit()
+    except Exception as ai_e:
+        print(f"AI Generation Failed: {ai_e}")
+        pass
+
     return {"message": f"Successfully normalized {records_added} records"}

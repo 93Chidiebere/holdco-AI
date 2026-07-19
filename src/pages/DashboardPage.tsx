@@ -24,7 +24,6 @@ export default function DashboardPage() {
   const { data: subsidiaries = [], isLoading: isLoadingSubs } = useSubsidiaries();
   const { data: kpis = [] } = useKPIs();
   const { data: insights = [] } = useInsights();
-  const { mutate: seedData, isPending: isSeeding } = useSeedData();
   const { mutate: clearData, isPending: isClearing } = useClearFinancials();
   const { data: defaultCurrency = "NGN" } = useCurrency();
   const [currencyCode, setCurrencyCode] = useState(defaultCurrency);
@@ -97,13 +96,9 @@ export default function DashboardPage() {
             </div>
             {!isLoadingSubs && (
               <div className="flex gap-2">
-                <Button onClick={() => seedData()} disabled={isSeeding || isClearing} variant="default" className="gap-2">
-                  <Database className="w-4 h-4" />
-                  {isSeeding ? "Seeding..." : "Seed Dummy Data"}
-                </Button>
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button disabled={isSeeding || isClearing} variant="destructive" className="gap-2">
+                    <Button disabled={isClearing} variant="destructive" className="gap-2">
                       <XCircle className="w-4 h-4" />
                       {isClearing ? "Clearing..." : "Clear Workspace"}
                     </Button>
