@@ -80,4 +80,4 @@ def simulate_scenario(
     from services.ai_service import simulate_financial_scenario
     simulation_results = simulate_financial_scenario(portfolio_data, req.prompt)
     
-    return {"results": simulation_results}
+    return simulation_results

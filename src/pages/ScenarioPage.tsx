@@ -47,6 +47,7 @@ export default function ScenarioPage() {
   // AI Simulation State
   const [aiPrompt, setAiPrompt] = useState("What happens to our portfolio cash flow if our agriculture subsidiary's revenue drops 30% due to weather, and the Naira devalues by 15%?");
   const [aiResults, setAiResults] = useState<any>(null);
+  const [aiNarrative, setAiNarrative] = useState<string>("");
 
   const addTransfer = () => {
     if (!from || !to || from === to) return;
@@ -85,6 +86,7 @@ export default function ScenarioPage() {
     const response = await simulateScenario(aiPrompt);
     if (response?.results) {
       setAiResults(response.results);
+      setAiNarrative(response.narrative || "");
     }
   };
 
@@ -134,6 +136,16 @@ export default function ScenarioPage() {
             {aiResults && aiResults.length > 0 && (
               <div className="space-y-6 animate-fade-in">
                 <h2 className="text-xl font-bold flex items-center gap-2"><CheckCircle2 className="w-5 h-5 text-success" /> 12-Month Projection Results</h2>
+                
+                {aiNarrative && (
+                  <div className="p-5 rounded-xl bg-primary/5 border border-primary/20 text-sm">
+                    <div className="flex gap-3 items-start">
+                      <Brain className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                      <p className="leading-relaxed whitespace-pre-wrap text-foreground/90">{aiNarrative}</p>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {aiResults.map((res: any, idx: number) => (
                     <Card key={idx} className="glass-card">

@@ -173,7 +173,7 @@ def generate_portfolio_insights(holding_company_name: str, subsidiaries_data: Li
         logger.error(f"Failed to generate portfolio insights: {str(e)}")
         return get_mock_portfolio_insights()
 
-def simulate_financial_scenario(portfolio_data: List[Dict[str, Any]], user_prompt: str) -> List[Dict[str, Any]]:
+def simulate_financial_scenario(portfolio_data: List[Dict[str, Any]], user_prompt: str) -> Dict[str, Any]:
     """
     Runs a deterministic mathematical projection using Gemini to simulate a 12-month scenario.
     """
@@ -202,26 +202,28 @@ def simulate_financial_scenario(portfolio_data: List[Dict[str, Any]], user_promp
     Generate a 12-month mathematical projection for EACH subsidiary mentioned in the baseline.
     Apply standard financial reasoning (e.g., if inflation is 33%, operating costs should linearly increase by ~2.7% per month; if NGN devalues, imported COGS increase proportionally; if a loan is executed, cash decreases in source and increases in target, plus interest implications).
     
-    Return your response strictly as a JSON array of objects. Do not include any text outside the JSON array. Do not use markdown like ```json.
+    Return your response strictly as a JSON object containing a "narrative" explanation and a "results" array. Do not include any text outside the JSON object. Do not use markdown like ```json.
     
-    Structure of the JSON Array:
-    [
-      {{
-        "subsidiary": "Name of Subsidiary",
-        "projection": [
-          {{
-            "month": 1,
-            "revenue": (integer),
-            "cogs": (integer),
-            "opex": (integer),
-            "net_income": (integer),
-            "cash": (integer),
-            "roace": (float, e.g. 15.5)
-          }},
-          ... up to month 12
-        ]
-      }}
-    ]
+    Structure of the JSON:
+    {{
+      "narrative": "Detailed textual explanation of the impact of this scenario, explaining the changes in revenue, cash flow, margins, and any strategic recommendations based on the macro context.",
+      "results": [
+        {{
+          "subsidiary": "Name of Subsidiary",
+          "projection": [
+            {{
+              "month": 1,
+              "revenue": (integer),
+              "cogs": (integer),
+              "opex": (integer),
+              "net_income": (integer),
+              "cash": (integer),
+              "roace": (float, e.g. 15.5)
+            }}
+          ]
+        }}
+      ]
+    }}
     """
     
     try:
@@ -237,7 +239,7 @@ def simulate_financial_scenario(portfolio_data: List[Dict[str, Any]], user_promp
         return json.loads(response_text)
     except Exception as e:
         logger.error(f"Failed to run scenario simulation: {str(e)}")
-        return []
+        return get_mock_simulation(portfolio_data)
 
 def get_mock_portfolio_insights() -> Dict[str, Any]:
     return {
@@ -297,4 +299,7 @@ def get_mock_simulation(portfolio_data: List[Dict[str, Any]]) -> List[Dict[str, 
             "projection": projection
         })
         
-    return results
+    return {
+        "narrative": "Notice: The GEMINI_API_KEY is not configured or not responding. The system has fallen back to a deterministic 12-month baseline projection using continuous growth parameters. For real AI analysis of macro-economic impacts, please configure a valid Gemini API key.",
+        "results": results
+    }
