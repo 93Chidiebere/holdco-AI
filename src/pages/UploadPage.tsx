@@ -44,7 +44,7 @@ const simulatedRows: Record<string, string>[] = [
   { "Revenue (₦)": "5100000", "Operating Costs": "3050000", "Net Profit": "1420000", "Total Assets": "12200000", "Current Liabilities": "2250000", "Shareholder Equity": "8600000" },
 ];
 
-const requiredFields = ["revenue", "expenses", "net_income", "assets", "liabilities", "equity"];
+const requiredFields: string[] = [];
 
 interface ValidationIssue {
   type: "missing_field" | "empty_value" | "invalid_type" | "negative_value" | "unmapped_required";
@@ -62,7 +62,7 @@ function runValidation(mappings: ColumnMapping[], rows: Record<string, string>[]
   // Check unmapped required fields
   for (const req of requiredFields) {
     if (!mappedFields.has(req)) {
-      issues.push({ type: "unmapped_required", severity: "error", field: req, message: `Required field "${req}" is not mapped to any column.` });
+      issues.push({ type: "unmapped_required", severity: "warning", field: req, message: `Recommended field "${req}" is not mapped to any column.` });
     }
   }
 
@@ -72,7 +72,7 @@ function runValidation(mappings: ColumnMapping[], rows: Record<string, string>[]
       const val = rows[i][sourceCol];
 
       if (val === undefined || val === null || val.toString().trim() === "") {
-        issues.push({ type: "empty_value", severity: requiredFields.includes(targetField) ? "error" : "warning", field: targetField, row: i + 1, message: `Empty value for "${targetField}" in row ${i + 1}.` });
+        issues.push({ type: "empty_value", severity: "warning", field: targetField, row: i + 1, message: `Empty value for "${targetField}" in row ${i + 1}.` });
         continue;
       }
 
