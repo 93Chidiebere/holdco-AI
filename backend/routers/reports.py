@@ -69,3 +69,51 @@ def read_reports(
         query = query.filter(models.FinancialReport.subsidiary_id == subsidiary_id)
         
     return query.all()
+
+@router.post("/submit-normalized")
+def submit_normalized_data(
+    payload: schemas.NormalizedDataSubmit,
+    background_tasks: BackgroundTasks,
+    current_user: models.User = Depends(auth.get_current_user), 
+    db: Session = Depends(database.get_db)
+):
+    subsidiary = db.query(models.Subsidiary).filter(models.Subsidiary.id == payload.subsidiary_id).first()
+    if not subsidiary or (current_user.role != "superadmin" and subsidiary.holding_company_id != current_user.holding_company_id):
+        raise HTTPException(status_code=403, detail="Not authorized for this subsidiary")
+
+    records_added = 0
+    for row in payload.rows:
+        try:
+            date_str = str(row.date)
+            if len(date_str) == 7:
+                period_date = datetime.strptime(date_str, "%Y-%m")
+            else:
+                try:
+                    period_date = datetime.strptime(date_str, "%Y-%m-%d")
+                except:
+                    period_date = datetime.utcnow()
+                    
+            norm_data = models.NormalizedData(
+                subsidiary_id=payload.subsidiary_id,
+                date=period_date,
+                gross_revenue=row.gross_revenue,
+                cogs=row.cogs,
+                operating_expenses=row.operating_expenses,
+                pbt=row.pbt,
+                net_income=row.net_income,
+                cash_and_equivalents=row.cash_and_equivalents,
+                total_assets=row.total_assets,
+                total_liabilities=row.total_liabilities,
+                total_equity=row.total_equity,
+                capital_expenditure=row.capital_expenditure,
+                headcount=row.headcount
+            )
+            db.add(norm_data)
+            records_added += 1
+        except Exception as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=f"Error parsing row: {str(e)}")
+            
+    db.commit()
+
+    return {"message": f"Successfully normalized {records_added} records"}

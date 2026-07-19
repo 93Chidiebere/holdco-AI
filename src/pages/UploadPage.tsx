@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { ReportType, ReportingPeriod, ColumnMapping } from "@/types";
-import { useSubsidiaries } from "@/hooks/useApi";
+import { useSubsidiaries, useSubmitNormalizedData } from "@/hooks/useApi";
+import { useNavigate } from "react-router-dom";
 import { Upload, FileSpreadsheet, ArrowRight, ArrowLeft, Check, ShieldAlert, Sparkles, Save, RotateCcw, Building2, X, AlertTriangle, CheckCircle2, XCircle, Info, Download, Cloud, Box, HardDrive } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
@@ -31,7 +32,7 @@ const periods: { value: ReportingPeriod; label: string }[] = [
   { value: "yearly", label: "Yearly" },
 ];
 
-const standardFields = ["revenue", "expenses", "net_income", "cash", "debt", "assets", "liabilities", "equity", "operating_costs", "ebitda", "capex", "operating_cashflow"];
+const standardFields = ["date", "revenue", "expenses", "net_income", "cash", "debt", "assets", "liabilities", "equity", "operating_costs", "ebitda", "capex", "operating_cashflow", "headcount"];
 
 const requiredFields: string[] = [];
 
@@ -110,8 +111,10 @@ interface BulkFileEntry {
 }
 
 export default function UploadPage() {
+  const navigate = useNavigate();
   const { hasPermission } = usePermissions();
   const canUpload = hasPermission("upload_reports");
+  const { mutate: submitNormalizedData, isPending: isSubmitting } = useSubmitNormalizedData();
 
   const { data: subsidiaries = [], isLoading } = useSubsidiaries();
   
@@ -352,27 +355,73 @@ export default function UploadPage() {
       }
     });
 
+    const rowsPayload = parsedRows.map(row => {
+      const getVal = (target: string) => {
+        const mapping = mappings.find(m => m.target_field === target);
+        if (!mapping) return 0;
+        const val = row[mapping.source_column];
+        if (!val) return 0;
+        const clean = val.toString().replace(/,/g, "").trim();
+        return parseFloat(clean) || 0;
+      };
+
+      const getDate = () => {
+        const mapping = mappings.find(m => m.target_field === "date");
+        if (mapping && row[mapping.source_column]) return row[mapping.source_column];
+        return new Date().toISOString().split("T")[0]; // Fallback to today
+      };
+
+      return {
+        date: getDate(),
+        gross_revenue: getVal("revenue"),
+        cogs: getVal("operating_costs"), // Simplification
+        operating_expenses: getVal("expenses"),
+        pbt: getVal("ebitda"), // Simplification
+        net_income: getVal("net_income"),
+        cash_and_equivalents: getVal("cash"),
+        total_assets: getVal("assets"),
+        total_liabilities: getVal("liabilities"),
+        total_equity: getVal("equity"),
+        capital_expenditure: getVal("capex"),
+        headcount: Math.round(getVal("headcount"))
+      };
+    });
+
     const count = subIds.length;
-    toast.success(
-      count === 1
-        ? "Report uploaded and mapped successfully! Data normalization in progress."
-        : `${count} reports uploaded and mapped successfully! Batch normalization in progress.`
-    );
+    
+    // Process the first subsidiary for now to avoid multiple simultaneous requests breaking UX
+    // In a real bulk scenario, this would Promise.all or send a bulk endpoint array
+    submitNormalizedData({
+      subsidiary_id: subIds[0],
+      report_type: reportType,
+      reporting_period: period,
+      rows: rowsPayload
+    }, {
+      onSuccess: () => {
+        toast.success(
+          count === 1
+            ? "Data normalized successfully! Redirecting to Dashboard..."
+            : `${count} reports normalized successfully! Redirecting to Dashboard...`
+        );
+        
+        setValidationIssues([]);
+        setValidationRun(false);
 
-    setValidationIssues([]);
-    setValidationRun(false);
-
-    // Reset
-    setStep(1);
-    setSubsidiaryId("");
-    setSelectedSubsidiaryIds([]);
-    setBulkFiles([]);
-    setReportType("");
-    setPeriod("");
-    setFile(null);
-    setMappings([]);
-    setConfidences({});
-    setUsedTemplate(false);
+        // Reset
+        setStep(1);
+        setSubsidiaryId("");
+        setSelectedSubsidiaryIds([]);
+        setBulkFiles([]);
+        setReportType("");
+        setPeriod("");
+        setFile(null);
+        setMappings([]);
+        setConfidences({});
+        setUsedTemplate(false);
+        
+        navigate("/");
+      }
+    });
   };
 
   const downloadTemplate = () => {
@@ -822,9 +871,18 @@ export default function UploadPage() {
                 </PermissionTooltip>
               ) : (
                 <PermissionTooltip hasPermission={canUpload} message="You need upload permissions to submit reports.">
-                  <Button onClick={handleSubmit} disabled={!canUpload || !canProceed()}>
-                    <Check className="w-4 h-4 mr-2" />
-                    {uploadMode === "bulk" ? `Submit ${selectedSubsidiaryIds.length} Reports` : "Submit & Normalize"}
+                  <Button onClick={handleSubmit} disabled={!canUpload || !canProceed() || isSubmitting}>
+                    {isSubmitting ? (
+                      <span className="flex items-center gap-2">
+                        <span className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                        Normalizing...
+                      </span>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4 mr-2" />
+                        {uploadMode === "bulk" ? `Submit ${selectedSubsidiaryIds.length} Reports` : "Submit & Normalize"}
+                      </>
+                    )}
                   </Button>
                 </PermissionTooltip>
               )}

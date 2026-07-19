@@ -191,3 +191,24 @@ class Scenario(ScenarioBase):
     class Config:
         orm_mode = True
         from_attributes = True
+
+class NormalizedDataSubmitRow(BaseModel):
+    date: str
+    gross_revenue: float = 0
+    cogs: float = 0
+    operating_expenses: float = 0
+    pbt: float = 0
+    net_income: float = 0
+    cash_and_equivalents: float = 0
+    total_assets: float = 0
+    total_liabilities: float = 0
+    total_equity: float = 0
+    capital_expenditure: float = 0
+    headcount: int = 0
+
+class NormalizedDataSubmit(BaseModel):
+    subsidiary_id: str
+    report_type: str
+    reporting_period: str
+    rows: List[NormalizedDataSubmitRow]
+

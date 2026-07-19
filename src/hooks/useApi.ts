@@ -95,6 +95,21 @@ export function useRecommendations() {
   });
 }
 
+// Upload Data Hook
+export function useSubmitNormalizedData() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: any) =>
+      fetcher("/api/reports/submit-normalized", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to normalize data");
+    },
+  });
+}
+
 // Seed Data
 export function useSeedData() {
   const queryClient = useQueryClient();
