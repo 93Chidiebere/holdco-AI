@@ -2,15 +2,16 @@ import { useMemo, useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, DollarSign, Coins, BarChart3, AlertTriangle, Building2, Brain, ArrowUpRight, Database } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Coins, BarChart3, AlertTriangle, Building2, Brain, ArrowUpRight, Database, XCircle } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { Link } from "react-router-dom";
-import { useSubsidiaries, useKPIs, useInsights, useSeedData, useCurrency, useDashboardStats, useRevenueTrend } from "@/hooks/useApi";
+import { useSubsidiaries, useKPIs, useInsights, useSeedData, useClearFinancials, useCurrency, useDashboardStats, useRevenueTrend } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
 import { getCurrencySymbol } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const severityColors: Record<string, string> = {
   low: "bg-info/10 text-info border-info/20",
@@ -24,6 +25,7 @@ export default function DashboardPage() {
   const { data: kpis = [] } = useKPIs();
   const { data: insights = [] } = useInsights();
   const { mutate: seedData, isPending: isSeeding } = useSeedData();
+  const { mutate: clearData, isPending: isClearing } = useClearFinancials();
   const { data: defaultCurrency = "NGN" } = useCurrency();
   const [currencyCode, setCurrencyCode] = useState(defaultCurrency);
   const [applyEliminations, setApplyEliminations] = useState(true);
@@ -94,10 +96,37 @@ export default function DashboardPage() {
               </Select>
             </div>
             {!isLoadingSubs && (
-              <Button onClick={() => seedData()} disabled={isSeeding} variant="default" className="gap-2">
-                <Database className="w-4 h-4" />
-                {isSeeding ? "Seeding Data..." : "Seed Dummy Data"}
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={() => seedData()} disabled={isSeeding || isClearing} variant="default" className="gap-2">
+                  <Database className="w-4 h-4" />
+                  {isSeeding ? "Seeding..." : "Seed Dummy Data"}
+                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button disabled={isSeeding || isClearing} variant="destructive" className="gap-2">
+                      <XCircle className="w-4 h-4" />
+                      {isClearing ? "Clearing..." : "Clear Workspace"}
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Are you absolutely sure?</DialogTitle>
+                      <DialogDescription>
+                        This will permanently delete all uploaded financial reports, normalized data, insights, and KPIs for your workspace.
+                        Subsidiaries and their configurations will be kept intact. This is ideal for resetting the environment for a new period upload.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape'}))}>
+                        Cancel
+                      </Button>
+                      <Button variant="destructive" onClick={() => clearData()}>
+                        Yes, wipe financial data
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
             )}
           </div>
         </div>

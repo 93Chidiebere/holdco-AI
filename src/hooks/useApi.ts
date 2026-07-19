@@ -125,6 +125,21 @@ export function useSeedData() {
   });
 }
 
+// Clear Financial Data
+export function useClearFinancials() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => fetcher("/api/platform/clear-financials", { method: "POST" }),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries();
+      toast.success(res.message || "Financial data cleared successfully!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to clear financial data");
+    },
+  });
+}
+
 // Hooks for Currency
 export function useCurrency() {
   return useQuery({
