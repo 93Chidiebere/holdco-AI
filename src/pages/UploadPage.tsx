@@ -161,13 +161,21 @@ export default function UploadPage() {
         header: true,
         skipEmptyLines: true,
         complete: (results) => {
-          if (results.meta.fields) {
+          if (results.meta.fields && results.meta.fields.length > 0) {
             setParsedColumns(results.meta.fields);
             setParsedRows(results.data.slice(0, 100) as Record<string, string>[]);
             setMappings(results.meta.fields.map(col => ({ source_column: col, target_field: "" })));
             setUsedTemplate(false);
             setValidationRun(false);
+            toast.success("File parsed successfully. " + results.data.length + " rows detected.");
+          } else {
+            toast.error("Could not parse file headers. Ensure it is a valid CSV.");
+            setParsedColumns([]);
+            setParsedRows([]);
           }
+        },
+        error: (err) => {
+          toast.error("Error parsing file: " + err.message);
         }
       });
     } else {
@@ -235,7 +243,14 @@ export default function UploadPage() {
   // Run validation when entering step 6
   useEffect(() => {
     if (step === 6 && !validationRun) {
-      const rowsToValidate = parsedRows.length > 0 ? parsedRows : simulatedRows;
+      const rowsToValidate = parsedRows.length > 0 ? parsedRows : [];
+      if (rowsToValidate.length === 0) {
+        toast.error("No valid data rows found to validate. Please check your uploaded file.");
+        setValidationIssues([{ type: "empty_value", severity: "error", field: "all", row: 0, message: "No data could be parsed from the file." }]);
+        setValidationRun(true);
+        return;
+      }
+      
       const issues = runValidation(mappings, rowsToValidate);
       setValidationIssues(issues);
       setValidationRun(true);
@@ -249,7 +264,7 @@ export default function UploadPage() {
         toast.warning(`${warnings} warning(s) found — review before submitting.`);
       }
     }
-  }, [step, mappings, validationRun]);
+  }, [step, mappings, validationRun, parsedRows]);
 
   const canProceed = () => {
     if (step === 1) {
@@ -721,9 +736,9 @@ export default function UploadPage() {
                 {(() => {
                   const errors = validationIssues.filter(i => i.severity === "error");
                   const warnings = validationIssues.filter(i => i.severity === "warning");
-                  const rowsToValidate = parsedRows.length > 0 ? parsedRows : simulatedRows;
-                  const totalChecked = mappings.filter(m => m.target_field && m.target_field !== "skip").length * rowsToValidate.length + requiredFields.length;
-                  const passRate = totalChecked > 0 ? Math.round(((totalChecked - errors.length - warnings.length) / totalChecked) * 100) : 100;
+                  const rowsToValidate = parsedRows.length > 0 ? parsedRows : [];
+                  const totalChecked = mappings.filter(m => m.target_field && m.target_field !== "skip").length * (rowsToValidate.length || 1) + requiredFields.length;
+                  const passRate = totalChecked > 0 ? Math.round(((totalChecked - errors.length - warnings.length) / totalChecked) * 100) : 0;
 
                   return (
                     <>
