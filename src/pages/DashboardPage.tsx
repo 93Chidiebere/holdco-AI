@@ -3,7 +3,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, DollarSign, Coins, BarChart3, AlertTriangle, Building2, Brain, ArrowUpRight, Database, XCircle } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from "recharts";
 import { Link } from "react-router-dom";
 import { useSubsidiaries, useKPIs, useInsights, useSeedData, useClearFinancials, useCurrency, useDashboardStats, useRevenueTrend } from "@/hooks/useApi";
 import { Button } from "@/components/ui/button";
@@ -166,26 +166,43 @@ export default function DashboardPage() {
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={generatedRevenueData}>
-                    <defs>
+                  {generatedRevenueData.length === 1 ? (
+                    <BarChart data={generatedRevenueData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 18%)" />
+                      <XAxis dataKey="month" stroke="hsl(220, 10%, 55%)" fontSize={12} />
+                      <YAxis stroke="hsl(220, 10%, 55%)" fontSize={12} width={65} tickFormatter={(val) => val >= 1e9 ? `${(val / 1e9).toFixed(1)}B` : val >= 1e6 ? `${(val / 1e6).toFixed(0)}M` : val >= 1e3 ? `${(val / 1e3).toFixed(0)}k` : val} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: "hsl(220, 25%, 12%)", border: "1px solid hsl(220, 20%, 18%)", borderRadius: "8px", color: "hsl(220, 10%, 93%)" }} 
+                        formatter={(value: number) => [`${sym}${value >= 1e9 ? (value / 1e9).toFixed(2) + 'B' : value >= 1e6 ? (value / 1e6).toFixed(2) + 'M' : value >= 1e3 ? (value / 1e3).toFixed(2) + 'k' : value.toLocaleString()}`, undefined]}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 12, marginTop: 10 }} />
                       {subsidiaries.map((sub: any, i: number) => (
-                        <linearGradient key={sub.id} id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={colors[i % colors.length]} stopOpacity={0.3} />
-                          <stop offset="95%" stopColor={colors[i % colors.length]} stopOpacity={0} />
-                        </linearGradient>
+                        <Bar key={sub.id} dataKey={sub.name} fill={colors[i % colors.length]} radius={[4, 4, 0, 0]} />
                       ))}
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 18%)" />
-                    <XAxis dataKey="month" stroke="hsl(220, 10%, 55%)" fontSize={12} />
-                    <YAxis stroke="hsl(220, 10%, 55%)" fontSize={12} width={65} tickFormatter={(val) => val >= 1e9 ? `${(val / 1e9).toFixed(1)}B` : val >= 1e6 ? `${(val / 1e6).toFixed(0)}M` : val >= 1e3 ? `${(val / 1e3).toFixed(0)}k` : val} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: "hsl(220, 25%, 12%)", border: "1px solid hsl(220, 20%, 18%)", borderRadius: "8px", color: "hsl(220, 10%, 93%)" }} 
-                      formatter={(value: number) => [`${sym}${value >= 1e9 ? (value / 1e9).toFixed(2) + 'B' : value >= 1e6 ? (value / 1e6).toFixed(2) + 'M' : value >= 1e3 ? (value / 1e3).toFixed(2) + 'k' : value.toLocaleString()}`, undefined]}
-                    />
-                    {subsidiaries.map((sub: any, i: number) => (
-                      <Area key={sub.id} type="monotone" dataKey={sub.name} stroke={colors[i % colors.length]} fill={`url(#grad-${i})`} strokeWidth={2} />
-                    ))}
-                  </AreaChart>
+                    </BarChart>
+                  ) : (
+                    <AreaChart data={generatedRevenueData}>
+                      <defs>
+                        {subsidiaries.map((sub: any, i: number) => (
+                          <linearGradient key={sub.id} id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={colors[i % colors.length]} stopOpacity={0.3} />
+                            <stop offset="95%" stopColor={colors[i % colors.length]} stopOpacity={0} />
+                          </linearGradient>
+                        ))}
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 18%)" />
+                      <XAxis dataKey="month" stroke="hsl(220, 10%, 55%)" fontSize={12} />
+                      <YAxis stroke="hsl(220, 10%, 55%)" fontSize={12} width={65} tickFormatter={(val) => val >= 1e9 ? `${(val / 1e9).toFixed(1)}B` : val >= 1e6 ? `${(val / 1e6).toFixed(0)}M` : val >= 1e3 ? `${(val / 1e3).toFixed(0)}k` : val} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: "hsl(220, 25%, 12%)", border: "1px solid hsl(220, 20%, 18%)", borderRadius: "8px", color: "hsl(220, 10%, 93%)" }} 
+                        formatter={(value: number) => [`${sym}${value >= 1e9 ? (value / 1e9).toFixed(2) + 'B' : value >= 1e6 ? (value / 1e6).toFixed(2) + 'M' : value >= 1e3 ? (value / 1e3).toFixed(2) + 'k' : value.toLocaleString()}`, undefined]}
+                      />
+                      <Legend wrapperStyle={{ fontSize: 12, marginTop: 10 }} />
+                      {subsidiaries.map((sub: any, i: number) => (
+                        <Area key={sub.id} type="monotone" dataKey={sub.name} stroke={colors[i % colors.length]} fill={`url(#grad-${i})`} strokeWidth={2} />
+                      ))}
+                    </AreaChart>
+                  )}
                 </ResponsiveContainer>
               </div>
             </CardContent>
