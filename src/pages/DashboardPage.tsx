@@ -36,17 +36,19 @@ export default function DashboardPage() {
   const sym = getCurrencySymbol(currencyCode);
 
   const { data: dashboardStats } = useDashboardStats(currencyCode, applyEliminations);
-  const { data: revenueTrend } = useRevenueTrend(currencyCode, applyEliminations);
+  const { data: inflowTrend } = useRevenueTrend(currencyCode, applyEliminations);
 
   const portfolioStats = [
     { 
-      label: "Total Revenue", 
+      label: "Total Inflow", 
       value: dashboardStats ? `${sym}${(dashboardStats.total_revenue / 1000000).toFixed(2)}M` : `${sym}0.00M`, 
-      change: "Live", trend: "flat" as const, icon: Coins 
+      trend: "up" as const, 
+      change: "+12.5%", 
+      icon: Coins 
     },
     { 
-      label: "Portfolio ROACE", 
-      value: dashboardStats ? `${dashboardStats.portfolio_roace.toFixed(1)}%` : "0.0%", 
+      label: "Net Surplus", 
+      value: dashboardStats ? `${sym}${(dashboardStats.total_net_income / 1000000).toFixed(2)}M` : `${sym}0.00M`, 
       change: "Live", trend: "up" as const, icon: BarChart3 
     },
     { label: "Active Subsidiaries", value: subsidiaries.length.toString(), change: "0", trend: "flat" as const, icon: Building2 },
@@ -56,16 +58,16 @@ export default function DashboardPage() {
   const processedKPIs = subsidiaries.map((sub: any) => {
     const subKpis = kpis.filter((k: any) => k.subsidiary_id === sub.id);
     const roace = subKpis.find((k: any) => k.name.toLowerCase().includes('roace'))?.value || 0;
-    const revGrowth = subKpis.find((k: any) => k.name.toLowerCase().includes('revenue'))?.value || 0;
+    const revGrowth = subKpis.find((k: any) => k.name.toLowerCase().includes('inflow'))?.value || 0;
+    
     return {
-      subsidiary: sub.name,
-      industry: sub.industry,
-      roace: roace,
+      ...sub,
+      roace: subKpis.find((k: any) => k.name.toLowerCase().includes('surplus') || k.name.toLowerCase().includes('efficiency'))?.value || 0,
       revenue_growth: revGrowth
     };
   });
 
-  const generatedRevenueData = revenueTrend || [];
+  const generatedInflowData = inflowTrend || [];
 
   const colors = ["hsl(160, 84%, 39%)", "hsl(217, 91%, 60%)", "hsl(0, 84%, 60%)", "hsl(38, 92%, 50%)", "hsl(280, 65%, 60%)"];
 
@@ -166,8 +168,8 @@ export default function DashboardPage() {
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  {generatedRevenueData.length === 1 ? (
-                    <BarChart data={generatedRevenueData}>
+                  {generatedInflowData.length === 1 ? (
+                    <BarChart data={generatedInflowData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 18%)" />
                       <XAxis dataKey="month" stroke="hsl(220, 10%, 55%)" fontSize={12} />
                       <YAxis stroke="hsl(220, 10%, 55%)" fontSize={12} width={65} tickFormatter={(val) => val >= 1e9 ? `${(val / 1e9).toFixed(1)}B` : val >= 1e6 ? `${(val / 1e6).toFixed(0)}M` : val >= 1e3 ? `${(val / 1e3).toFixed(0)}k` : val} />
@@ -181,7 +183,7 @@ export default function DashboardPage() {
                       ))}
                     </BarChart>
                   ) : (
-                    <AreaChart data={generatedRevenueData}>
+                    <AreaChart data={generatedInflowData}>
                       <defs>
                         {subsidiaries.map((sub: any, i: number) => (
                           <linearGradient key={sub.id} id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
@@ -209,9 +211,9 @@ export default function DashboardPage() {
           </Card>
 
           {/* KPI Comparison */}
-          <Card className="glass-card">
+          <Card className="glass-panel border-muted/20">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-semibold">ROACE by Subsidiary (%)</CardTitle>
+              <CardTitle className="text-base font-semibold">Primary KPI by Unit (%)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-[300px]">
@@ -254,7 +256,7 @@ export default function DashboardPage() {
                       <div className="text-right">
                         <p className="text-sm font-semibold">{kpi.roace}%</p>
                         <p className={`text-xs ${kpi.revenue_growth >= 0 ? "text-success" : "text-destructive"}`}>
-                          {kpi.revenue_growth >= 0 ? "+" : ""}{kpi.revenue_growth}% rev
+                          {kpi.revenue_growth >= 0 ? "+" : ""}{kpi.revenue_growth}% in/growth
                         </p>
                       </div>
                     </div>

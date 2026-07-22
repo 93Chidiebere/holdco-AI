@@ -12,8 +12,8 @@ import { usePermissions } from "@/hooks/usePermissions";
 import PermissionTooltip from "@/components/PermissionTooltip";
 
 const kpiLabels: Record<string, { label: string; unit: string }> = {
-  roace: { label: "ROACE", unit: "%" },
-  revenue_growth: { label: "Revenue Growth", unit: "%" },
+  roace: { label: "Surplus Margin", unit: "%" },
+  revenue_growth: { label: "Inflow Growth", unit: "%" },
 };
 
 export default function SubsidiaryDetailPage() {

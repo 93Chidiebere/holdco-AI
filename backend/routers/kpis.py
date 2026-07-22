@@ -30,49 +30,41 @@ def read_kpis(
         if len(data) > 0:
             latest = data[0]
             
-            # Compute ROACE (Net Income / Total Equity)
-            roace = 0
-            if latest.total_equity and latest.total_equity > 0:
-                roace = (latest.net_income or 0) / latest.total_equity * 100
+            # Compute Surplus Margin (Net Surplus / Total Inflow)
+            surplus_margin = 0
+            if latest.total_inflow and latest.total_inflow > 0:
+                surplus_margin = (latest.net_surplus or 0) / latest.total_inflow * 100
                 
-            # Compute EBITDA Margin (PBT + Depr, but we just use PBT/Rev for simplicity as proxy)
-            ebitda_margin = 0
-            if latest.gross_revenue and latest.gross_revenue > 0:
-                ebitda_margin = (latest.pbt or 0) / latest.gross_revenue * 100
+            # Compute Operating Efficiency (Total Outflow / Total Inflow)
+            operating_efficiency = 0
+            if latest.total_inflow and latest.total_inflow > 0:
+                operating_efficiency = (latest.total_outflow or 0) / latest.total_inflow * 100
                 
-            # Revenue Growth
-            rev_growth = 0
+            # Inflow Growth
+            inflow_growth = 0
             if len(data) == 2:
                 prev = data[1]
-                if prev.gross_revenue and prev.gross_revenue > 0:
-                    rev_growth = ((latest.gross_revenue or 0) - prev.gross_revenue) / prev.gross_revenue * 100
+                if prev.total_inflow and prev.total_inflow > 0:
+                    inflow_growth = ((latest.total_inflow or 0) - prev.total_inflow) / prev.total_inflow * 100
                     
-            # Liquidity Ratio (Cash / Total Liabilities as proxy)
-            liquidity = 1.5
-            if latest.total_liabilities and latest.total_liabilities > 0:
-                liquidity = (latest.cash_and_equivalents or 0) / latest.total_liabilities
-                
-            # Debt/Equity
-            debt_equity = 0.8
-            if latest.total_equity and latest.total_equity > 0:
-                # Approximate debt as total liabilities
-                debt_equity = (latest.total_liabilities or 0) / latest.total_equity
+            # Cash Runway (Cash Reserve / Monthly Outflow)
+            cash_runway = 0
+            if latest.total_outflow and latest.total_outflow > 0:
+                cash_runway = (latest.cash_reserve or 0) / latest.total_outflow
                 
             computed_kpis.extend([
-                {"id": f"roace_{sub.id}", "subsidiary_id": sub.id, "name": "ROACE", "value": round(roace, 1), "unit": "%", "trend": "up" if roace > 10 else "down", "change": 0},
-                {"id": f"ebitda_{sub.id}", "subsidiary_id": sub.id, "name": "EBITDA Margin", "value": round(ebitda_margin, 1), "unit": "%", "trend": "up", "change": 0},
-                {"id": f"rev_growth_{sub.id}", "subsidiary_id": sub.id, "name": "Revenue Growth", "value": round(rev_growth, 1), "unit": "%", "trend": "up" if rev_growth > 0 else "down", "change": 0},
-                {"id": f"liquidity_{sub.id}", "subsidiary_id": sub.id, "name": "Liquidity", "value": round(liquidity, 2), "unit": "x", "trend": "up", "change": 0},
-                {"id": f"debt_{sub.id}", "subsidiary_id": sub.id, "name": "Debt/Equity", "value": round(debt_equity, 2), "unit": "x", "trend": "down", "change": 0},
+                {"id": f"surplus_{sub.id}", "subsidiary_id": sub.id, "name": "Surplus Margin", "value": round(surplus_margin, 1), "unit": "%", "trend": "up" if surplus_margin > 0 else "down", "change": 0},
+                {"id": f"efficiency_{sub.id}", "subsidiary_id": sub.id, "name": "Operating Efficiency", "value": round(operating_efficiency, 1), "unit": "%", "trend": "up" if operating_efficiency < 80 else "down", "change": 0},
+                {"id": f"growth_{sub.id}", "subsidiary_id": sub.id, "name": "Inflow Growth", "value": round(inflow_growth, 1), "unit": "%", "trend": "up" if inflow_growth > 0 else "down", "change": 0},
+                {"id": f"runway_{sub.id}", "subsidiary_id": sub.id, "name": "Cash Runway", "value": round(cash_runway, 1), "unit": "mo", "trend": "up" if cash_runway > 3 else "down", "change": 0},
             ])
         else:
             # Fallback if no data
             computed_kpis.extend([
-                {"id": f"roace_{sub.id}", "subsidiary_id": sub.id, "name": "ROACE", "value": 0, "unit": "%", "trend": "flat", "change": 0},
-                {"id": f"ebitda_{sub.id}", "subsidiary_id": sub.id, "name": "EBITDA Margin", "value": 0, "unit": "%", "trend": "flat", "change": 0},
-                {"id": f"rev_growth_{sub.id}", "subsidiary_id": sub.id, "name": "Revenue Growth", "value": 0, "unit": "%", "trend": "flat", "change": 0},
-                {"id": f"liquidity_{sub.id}", "subsidiary_id": sub.id, "name": "Liquidity", "value": 0, "unit": "x", "trend": "flat", "change": 0},
-                {"id": f"debt_{sub.id}", "subsidiary_id": sub.id, "name": "Debt/Equity", "value": 0, "unit": "x", "trend": "flat", "change": 0},
+                {"id": f"surplus_{sub.id}", "subsidiary_id": sub.id, "name": "Surplus Margin", "value": 0, "unit": "%", "trend": "flat", "change": 0},
+                {"id": f"efficiency_{sub.id}", "subsidiary_id": sub.id, "name": "Operating Efficiency", "value": 0, "unit": "%", "trend": "flat", "change": 0},
+                {"id": f"growth_{sub.id}", "subsidiary_id": sub.id, "name": "Inflow Growth", "value": 0, "unit": "%", "trend": "flat", "change": 0},
+                {"id": f"runway_{sub.id}", "subsidiary_id": sub.id, "name": "Cash Runway", "value": 0, "unit": "mo", "trend": "flat", "change": 0},
             ])
             
     return computed_kpis

@@ -15,6 +15,7 @@ export interface User {
   avatar?: string;
   holding_company_id: string;
   holding_company_name: string;
+  industry_type?: string;
 }
 
 export interface Subsidiary {
@@ -49,15 +50,12 @@ export interface ColumnMapping {
 export interface NormalizedData {
   subsidiary_id: string;
   date: string;
-  revenue: number;
-  expenses: number;
-  net_income: number;
-  cash: number;
-  debt: number;
-  assets: number;
-  liabilities: number;
-  equity: number;
-  operating_costs: number;
+  total_inflow: number;
+  total_outflow: number;
+  net_surplus: number;
+  cash_reserve: number;
+  primary_kpi?: number;
+  secondary_kpi?: number;
 }
 
 export interface KPI {

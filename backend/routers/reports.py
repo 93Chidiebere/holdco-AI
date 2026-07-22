@@ -96,17 +96,12 @@ def submit_normalized_data(
             norm_data = models.NormalizedData(
                 subsidiary_id=payload.subsidiary_id,
                 date=period_date,
-                gross_revenue=row.gross_revenue,
-                cogs=row.cogs,
-                operating_expenses=row.operating_expenses,
-                pbt=row.pbt,
-                net_income=row.net_income,
-                cash_and_equivalents=row.cash_and_equivalents,
-                total_assets=row.total_assets,
-                total_liabilities=row.total_liabilities,
-                total_equity=row.total_equity,
-                capital_expenditure=row.capital_expenditure,
-                headcount=row.headcount
+                total_inflow=row.total_inflow,
+                total_outflow=row.total_outflow,
+                net_surplus=row.net_surplus,
+                cash_reserve=row.cash_reserve,
+                primary_kpi=row.primary_kpi,
+                secondary_kpi=row.secondary_kpi
             )
             db.add(norm_data)
             records_added += 1
@@ -132,12 +127,10 @@ def submit_normalized_data(
         for d in recent_data:
             history_dicts.append({
                 "date": d.date.strftime("%Y-%m"),
-                "gross_revenue": d.gross_revenue,
-                "cogs": d.cogs,
-                "operating_expenses": d.operating_expenses,
-                "pbt": d.pbt,
-                "net_income": d.net_income,
-                "cash_balance": d.cash_and_equivalents
+                "total_inflow": d.total_inflow,
+                "total_outflow": d.total_outflow,
+                "net_surplus": d.net_surplus,
+                "cash_reserve": d.cash_reserve
             })
             
         ai_response = generate_financial_insights(subsidiary.name, history_dicts)

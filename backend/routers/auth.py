@@ -38,7 +38,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
     hc_id = user.holding_company_id
     if user.company_name:
         # Create new holding company
-        hc = models.HoldingCompany(name=user.company_name)
+        hc = models.HoldingCompany(name=user.company_name, industry_type=user.industry_type)
         db.add(hc)
         db.flush() # flush to get the hc.id
         hc_id = hc.id
@@ -61,6 +61,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(database.get_db)
         hc = db.query(models.HoldingCompany).filter(models.HoldingCompany.id == db_user.holding_company_id).first()
         if hc:
             db_user.holding_company_name = hc.name
+            db_user.industry_type = hc.industry_type
 
     return db_user
 
@@ -85,6 +86,7 @@ def read_users_me(current_user: models.User = Depends(auth.get_current_user), db
         hc = db.query(models.HoldingCompany).filter(models.HoldingCompany.id == current_user.holding_company_id).first()
         if hc:
             current_user.holding_company_name = hc.name
+            current_user.industry_type = hc.industry_type
     return current_user
 
 @router.get("/holding-company/currency")

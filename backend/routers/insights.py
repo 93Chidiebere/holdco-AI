@@ -45,11 +45,10 @@ def generate_portfolio(
         for d in recent:
             history.append({
                 "date": d.date.strftime("%Y-%m"),
-                "revenue": d.gross_revenue,
-                "cogs": d.cogs,
-                "opex": d.operating_expenses,
-                "net_income": d.net_income,
-                "cash": d.cash_and_equivalents
+                "total_inflow": d.total_inflow,
+                "total_outflow": d.total_outflow,
+                "net_surplus": d.net_surplus,
+                "cash_reserve": d.cash_reserve
             })
         
         portfolio_data.append({

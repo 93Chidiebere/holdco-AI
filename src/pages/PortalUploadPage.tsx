@@ -133,9 +133,7 @@ export default function PortalUploadPage() {
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Required Columns</AlertTitle>
               <AlertDescription className="text-xs mt-1">
-                Reporting_Month (YYYY-MM), Gross_Revenue, Cost_of_Goods_Sold, Operating_Expenses, 
-                Profit_Before_Tax, Net_Income, Cash_and_Equivalents, Total_Assets, Total_Liabilities, 
-                Total_Equity, Capital_Expenditure, Headcount
+                Date (YYYY-MM), Total_Inflow, Total_Outflow, Cash_Reserve, Primary_KPI, Secondary_KPI
               </AlertDescription>
             </Alert>
 

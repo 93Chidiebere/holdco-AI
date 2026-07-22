@@ -150,7 +150,7 @@ export default function ScenarioPage() {
                   {aiResults.map((res: any, idx: number) => (
                     <Card key={idx} className="glass-card">
                       <CardHeader>
-                        <CardTitle className="text-base">{res.subsidiary} - Projected Cash & Revenue</CardTitle>
+                        <CardTitle className="text-base">{res.subsidiary} - Projected Cash & Inflow</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="h-[250px]">
@@ -165,7 +165,7 @@ export default function ScenarioPage() {
                                 labelFormatter={(val) => `Month ${val}`}
                               />
                               <Legend />
-                              <Line type="monotone" dataKey="revenue" stroke="hsl(217, 91%, 60%)" strokeWidth={2} name="Revenue" />
+                              <Line type="monotone" dataKey="total_inflow" stroke="hsl(217, 91%, 60%)" strokeWidth={2} name="Inflow" />
                               <Line type="monotone" dataKey="cash" stroke="hsl(160, 84%, 39%)" strokeWidth={2} name="Cash Reserve" />
                               <Line type="monotone" dataKey="opex" stroke="hsl(0, 84%, 60%)" strokeWidth={2} name="OPEX" />
                             </LineChart>

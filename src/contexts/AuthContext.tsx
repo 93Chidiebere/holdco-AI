@@ -4,7 +4,7 @@ import type { User } from "@/types";
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string, companyName: string, role?: User["role"]) => Promise<boolean>;
+  signup: (name: string, email: string, password: string, companyName: string, industryType?: string, role?: User["role"]) => Promise<boolean>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signup = async (name: string, email: string, password: string, companyName: string, role: User["role"] = "admin"): Promise<boolean> => {
+  const signup = async (name: string, email: string, password: string, companyName: string, industryType: string = "corporate", role: User["role"] = "admin"): Promise<boolean> => {
     try {
       const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
         method: "POST",
@@ -89,7 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name,
           password,
           role,
-          company_name: companyName
+          company_name: companyName,
+          industry_type: industryType
         })
       });
 

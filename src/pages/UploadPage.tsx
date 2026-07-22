@@ -32,7 +32,7 @@ const periods: { value: ReportingPeriod; label: string }[] = [
   { value: "yearly", label: "Yearly" },
 ];
 
-const standardFields = ["date", "revenue", "expenses", "net_income", "cash", "debt", "assets", "liabilities", "equity", "operating_costs", "ebitda", "capex", "operating_cashflow", "headcount"];
+const standardFields = ["date", "total_inflow", "total_outflow", "net_surplus", "cash_reserve", "primary_kpi", "secondary_kpi"];
 
 const requiredFields: string[] = [];
 
@@ -75,7 +75,7 @@ function runValidation(mappings: ColumnMapping[], rows: Record<string, string>[]
       const num = Number(trimmed.replace(/,/g, ""));
       if (isNaN(num)) {
         issues.push({ type: "invalid_type", severity: "error", field: targetField, row: i + 1, message: `"${trimmed}" is not a valid number for "${targetField}" in row ${i + 1}.` });
-      } else if (num < 0 && ["revenue", "assets", "equity"].includes(targetField)) {
+      } else if (num < 0 && ["total_inflow", "net_surplus"].includes(targetField)) {
         issues.push({ type: "negative_value", severity: "warning", field: targetField, row: i + 1, message: `Negative value (${num}) for "${targetField}" in row ${i + 1} — please verify.` });
       }
     }
@@ -373,17 +373,12 @@ export default function UploadPage() {
 
       return {
         date: getDate(),
-        gross_revenue: getVal("revenue"),
-        cogs: getVal("operating_costs"), // Simplification
-        operating_expenses: getVal("expenses"),
-        pbt: getVal("ebitda"), // Simplification
-        net_income: getVal("net_income"),
-        cash_and_equivalents: getVal("cash"),
-        total_assets: getVal("assets"),
-        total_liabilities: getVal("liabilities"),
-        total_equity: getVal("equity"),
-        capital_expenditure: getVal("capex"),
-        headcount: Math.round(getVal("headcount"))
+        total_inflow: getVal("total_inflow"),
+        total_outflow: getVal("total_outflow"),
+        net_surplus: getVal("net_surplus"),
+        cash_reserve: getVal("cash_reserve"),
+        primary_kpi: getVal("primary_kpi"),
+        secondary_kpi: getVal("secondary_kpi")
       };
     });
 
@@ -425,9 +420,11 @@ export default function UploadPage() {
   };
 
   const downloadTemplate = () => {
-    const headers = ["Date", "Gross Revenue", "COGS", "Operating Expenses", "PBT", "Net Income", "Cash and Equivalents", "Total Assets", "Total Liabilities", "Total Equity", "Capital Expenditure", "Headcount"];
-    const csvContent = headers.join(",") + "\n" + 
-      "2023-12-31,5000000,2000000,1000000,2000000,1500000,500000,10000000,4000000,6000000,500000,50";
+    const headers = ["Date", "Total_Inflow", "Total_Outflow", "Cash_Reserve", "Primary_KPI", "Secondary_KPI"];
+    const row = [
+      "2023-10", "1500000", "800000", "500000", "", ""
+    ];
+    const csvContent = headers.join(",") + "\n" + row.join(",");
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);

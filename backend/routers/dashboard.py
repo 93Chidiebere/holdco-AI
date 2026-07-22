@@ -86,8 +86,8 @@ def get_dashboard_stats(
         
         # Sum revenue and income
         for d in sub_data:
-            total_revenue += (d.gross_revenue or 0) * rate
-            total_net_income += (d.net_income or 0) * rate
+            total_revenue += (d.total_inflow or 0) * rate
+            total_net_income += (d.net_surplus or 0) * rate
             
         # For equity, take the latest record
         latest_data = sorted(sub_data, key=lambda x: x.date, reverse=True)[0]
@@ -164,7 +164,7 @@ def get_revenue_trend(
             if sub.name not in monthly_data[sort_key]:
                 monthly_data[sort_key][sub.name] = 0.0
                 
-            monthly_data[sort_key][sub.name] += (d.gross_revenue or 0) * rate
+            monthly_data[sort_key][sub.name] += (d.total_inflow or 0) * rate
 
     # Apply monthly eliminations
     if apply_elim and hc_id:

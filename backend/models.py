@@ -21,6 +21,7 @@ class HoldingCompany(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     owner_id = Column(String) # UUID of User
     currency = Column(String, default="NGN")
+    industry_type = Column(String, default="corporate")
 
     users = relationship("User", back_populates="holding_company")
     subsidiaries = relationship("Subsidiary", back_populates="holding_company")
@@ -81,17 +82,12 @@ class NormalizedData(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     subsidiary_id = Column(String, ForeignKey("subsidiaries.id"))
     date = Column(DateTime)
-    gross_revenue = Column(Float, default=0)
-    cogs = Column(Float, default=0)
-    operating_expenses = Column(Float, default=0)
-    pbt = Column(Float, default=0)
-    net_income = Column(Float, default=0)
-    cash_and_equivalents = Column(Float, default=0)
-    total_assets = Column(Float, default=0)
-    total_liabilities = Column(Float, default=0)
-    total_equity = Column(Float, default=0)
-    capital_expenditure = Column(Float, default=0)
-    headcount = Column(Integer, default=0)
+    total_inflow = Column(Float, default=0)
+    total_outflow = Column(Float, default=0)
+    net_surplus = Column(Float, default=0)
+    cash_reserve = Column(Float, default=0)
+    primary_kpi = Column(Float, nullable=True)
+    secondary_kpi = Column(Float, nullable=True)
     
     subsidiary = relationship("Subsidiary", back_populates="normalized_data")
 

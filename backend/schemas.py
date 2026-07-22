@@ -12,6 +12,7 @@ class HoldingCompany(HoldingCompanyBase):
     id: str
     created_at: datetime
     owner_id: Optional[str]
+    industry_type: Optional[str] = "corporate"
 
     class Config:
         orm_mode = True
@@ -27,6 +28,7 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     password: str
     company_name: Optional[str] = None
+    industry_type: Optional[str] = "corporate"
 
 class UserLogin(BaseModel):
     email: str
@@ -35,6 +37,7 @@ class UserLogin(BaseModel):
 class User(UserBase):
     id: str
     holding_company_name: Optional[str] = None
+    industry_type: Optional[str] = "corporate"
 
     class Config:
         orm_mode = True
@@ -99,17 +102,12 @@ class SubsidiaryToken(SubsidiaryTokenBase):
 
 class NormalizedDataBase(BaseModel):
     date: datetime
-    gross_revenue: float
-    cogs: float
-    operating_expenses: float
-    pbt: float
-    net_income: float
-    cash_and_equivalents: float
-    total_assets: float
-    total_liabilities: float
-    total_equity: float
-    capital_expenditure: float
-    headcount: int
+    total_inflow: float
+    total_outflow: float
+    net_surplus: float
+    cash_reserve: float
+    primary_kpi: Optional[float] = None
+    secondary_kpi: Optional[float] = None
 
 class NormalizedData(NormalizedDataBase):
     id: str
@@ -194,17 +192,12 @@ class Scenario(ScenarioBase):
 
 class NormalizedDataSubmitRow(BaseModel):
     date: str
-    gross_revenue: float = 0
-    cogs: float = 0
-    operating_expenses: float = 0
-    pbt: float = 0
-    net_income: float = 0
-    cash_and_equivalents: float = 0
-    total_assets: float = 0
-    total_liabilities: float = 0
-    total_equity: float = 0
-    capital_expenditure: float = 0
-    headcount: int = 0
+    total_inflow: float = 0
+    total_outflow: float = 0
+    net_surplus: float = 0
+    cash_reserve: float = 0
+    primary_kpi: Optional[float] = None
+    secondary_kpi: Optional[float] = None
 
 class NormalizedDataSubmit(BaseModel):
     subsidiary_id: str

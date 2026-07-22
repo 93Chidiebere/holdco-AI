@@ -72,9 +72,7 @@ async def upload_financial_data(
         
     # Expected columns
     expected_columns = [
-        "Reporting_Month", "Gross_Revenue", "Cost_of_Goods_Sold", "Operating_Expenses",
-        "Profit_Before_Tax", "Net_Income", "Cash_and_Equivalents", "Total_Assets",
-        "Total_Liabilities", "Total_Equity", "Capital_Expenditure", "Headcount"
+        "Date", "Total_Inflow", "Total_Outflow", "Cash_Reserve", "Primary_KPI", "Secondary_KPI"
     ]
     
     missing_cols = [col for col in expected_columns if col not in df.columns]
@@ -87,7 +85,7 @@ async def upload_financial_data(
     for index, row in df.iterrows():
         try:
             # Parse Date (Expected YYYY-MM)
-            date_str = str(row["Reporting_Month"])
+            date_str = str(row["Date"])
             if len(date_str) == 7:
                 period_date = datetime.strptime(date_str, "%Y-%m")
             else:
@@ -96,17 +94,12 @@ async def upload_financial_data(
             norm_data = models.NormalizedData(
                 subsidiary_id=token_record.subsidiary_id,
                 date=period_date,
-                gross_revenue=float(row["Gross_Revenue"]),
-                cogs=float(row["Cost_of_Goods_Sold"]),
-                operating_expenses=float(row["Operating_Expenses"]),
-                pbt=float(row["Profit_Before_Tax"]),
-                net_income=float(row["Net_Income"]),
-                cash_and_equivalents=float(row["Cash_and_Equivalents"]),
-                total_assets=float(row["Total_Assets"]),
-                total_liabilities=float(row["Total_Liabilities"]),
-                total_equity=float(row["Total_Equity"]),
-                capital_expenditure=float(row["Capital_Expenditure"]),
-                headcount=int(row["Headcount"])
+                total_inflow=float(row.get("Total_Inflow", 0)),
+                total_outflow=float(row.get("Total_Outflow", 0)),
+                net_surplus=float(row.get("Total_Inflow", 0)) - float(row.get("Total_Outflow", 0)),
+                cash_reserve=float(row.get("Cash_Reserve", 0)),
+                primary_kpi=float(row.get("Primary_KPI", 0)) if pd.notna(row.get("Primary_KPI")) else None,
+                secondary_kpi=float(row.get("Secondary_KPI", 0)) if pd.notna(row.get("Secondary_KPI")) else None,
             )
             db.add(norm_data)
             records_added += 1
@@ -134,12 +127,10 @@ async def upload_financial_data(
         for d in recent_data:
             history_dicts.append({
                 "date": d.date.strftime("%Y-%m"),
-                "gross_revenue": d.gross_revenue,
-                "cogs": d.cogs,
-                "operating_expenses": d.operating_expenses,
-                "pbt": d.pbt,
-                "net_income": d.net_income,
-                "cash_balance": d.cash_and_equivalents
+                "total_inflow": d.total_inflow,
+                "total_outflow": d.total_outflow,
+                "net_surplus": d.net_surplus,
+                "cash_reserve": d.cash_reserve
             })
             
         ai_response = generate_financial_insights(sub.name, history_dicts)

@@ -9,7 +9,7 @@ import { useMemo } from "react";
 const kpiCards = [
   { key: "roace", label: "Avg ROACE", unit: "%" },
   { key: "ebitda_margin", label: "Avg EBITDA Margin", unit: "%" },
-  { key: "revenue_growth", label: "Avg Revenue Growth", unit: "%" },
+  { key: "revenue_growth", label: "Avg Inflow Growth", unit: "%" },
   { key: "liquidity", label: "Avg Liquidity Ratio", unit: "x" },
   { key: "debt_equity", label: "Avg Debt/Equity", unit: "x" },
 ];
@@ -25,7 +25,7 @@ export default function AnalyticsPage() {
         subsidiary: sub.name,
         roace: subKpis.find((k: any) => k.name.toLowerCase().includes('roace'))?.value || 0,
         ebitda_margin: subKpis.find((k: any) => k.name.toLowerCase().includes('ebitda'))?.value || 15,
-        revenue_growth: subKpis.find((k: any) => k.name.toLowerCase().includes('revenue'))?.value || 0,
+        revenue_growth: subKpis.find((k: any) => k.name.toLowerCase().includes('inflow'))?.value || 0,
         liquidity: subKpis.find((k: any) => k.name.toLowerCase().includes('liquidity'))?.value || 1.5,
         debt_equity: subKpis.find((k: any) => k.name.toLowerCase().includes('debt'))?.value || 0.8,
       };
@@ -52,7 +52,7 @@ export default function AnalyticsPage() {
     });
   }, [processedKPIs]);
 
-  const generatedRevenueData = useMemo(() => {
+  const generatedInflowData = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     return months.map((month, i) => {
       const data: any = { month };
@@ -101,7 +101,7 @@ export default function AnalyticsPage() {
           <TabsList>
             <TabsTrigger value="comparison">KPI Comparison</TabsTrigger>
             <TabsTrigger value="radar">Radar View</TabsTrigger>
-            <TabsTrigger value="trends">Revenue Trends</TabsTrigger>
+            <TabsTrigger value="trends">Inflow Trends</TabsTrigger>
           </TabsList>
 
           <TabsContent value="comparison">
@@ -124,7 +124,7 @@ export default function AnalyticsPage() {
               </Card>
 
               <Card className="glass-card">
-                <CardHeader className="pb-2"><CardTitle className="text-base">Revenue Growth (%)</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-base">Inflow Growth (%)</CardTitle></CardHeader>
                 <CardContent>
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -171,20 +171,33 @@ export default function AnalyticsPage() {
 
           <TabsContent value="trends">
             <Card className="glass-card">
-              <CardHeader className="pb-2"><CardTitle className="text-base">Revenue Trends (₦M)</CardTitle></CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-base">Inflow Trends</CardTitle></CardHeader>
               <CardContent>
                 <div className="h-[400px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={generatedRevenueData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 18%)" />
-                      <XAxis dataKey="month" stroke="hsl(220, 10%, 55%)" fontSize={12} />
-                      <YAxis stroke="hsl(220, 10%, 55%)" fontSize={12} />
-                      <Tooltip contentStyle={{ backgroundColor: "hsl(220, 25%, 12%)", border: "1px solid hsl(220, 20%, 18%)", borderRadius: "8px", color: "hsl(220, 10%, 93%)" }} />
-                      <Legend wrapperStyle={{ color: "hsl(220, 10%, 55%)" }} />
-                      {subsidiaries.map((sub: any, i: number) => (
-                        <Line key={sub.id} type="monotone" dataKey={sub.name} stroke={colors[i % colors.length]} strokeWidth={2} dot={false} />
-                      ))}
-                    </LineChart>
+                    {generatedInflowData.length === 1 ? (
+                      <BarChart data={generatedInflowData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 18%)" />
+                        <XAxis dataKey="month" stroke="hsl(220, 10%, 55%)" fontSize={12} />
+                        <YAxis stroke="hsl(220, 10%, 55%)" fontSize={12} />
+                        <Tooltip contentStyle={{ backgroundColor: "hsl(220, 25%, 12%)", border: "1px solid hsl(220, 20%, 18%)", borderRadius: "8px", color: "hsl(220, 10%, 93%)" }} />
+                        <Legend wrapperStyle={{ color: "hsl(220, 10%, 55%)" }} />
+                        {subsidiaries.map((sub: any, i: number) => (
+                          <Bar key={sub.id} dataKey={sub.name} fill={colors[i % colors.length]} radius={[4, 4, 0, 0]} />
+                        ))}
+                      </BarChart>
+                    ) : (
+                      <LineChart data={generatedInflowData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 20%, 18%)" />
+                        <XAxis dataKey="month" stroke="hsl(220, 10%, 55%)" fontSize={12} />
+                        <YAxis stroke="hsl(220, 10%, 55%)" fontSize={12} />
+                        <Tooltip contentStyle={{ backgroundColor: "hsl(220, 25%, 12%)", border: "1px solid hsl(220, 20%, 18%)", borderRadius: "8px", color: "hsl(220, 10%, 93%)" }} />
+                        <Legend wrapperStyle={{ color: "hsl(220, 10%, 55%)" }} />
+                        {subsidiaries.map((sub: any, i: number) => (
+                          <Line key={sub.id} type="monotone" dataKey={sub.name} stroke={colors[i % colors.length]} strokeWidth={2} dot={false} />
+                        ))}
+                      </LineChart>
+                    )}
                   </ResponsiveContainer>
                 </div>
               </CardContent>

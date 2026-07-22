@@ -11,6 +11,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [industryType, setIndustryType] = useState("corporate");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
@@ -23,7 +24,7 @@ export default function SignupPage() {
     // Admins (IT) and Analysts are added later via Settings → Team invitations.
     // First signup = the workspace IT Admin. The Admin then provisions
     // the MD/CEO and Analyst accounts from Settings → Team.
-    const success = await signup(name, email, password, companyName, "admin");
+    const success = await signup(name, email, password, companyName, industryType, "admin");
     setLoading(false);
     if (success) navigate("/");
   };
@@ -43,7 +44,7 @@ export default function SignupPage() {
             <span className="text-gradient">investment decisions</span>
           </h1>
           <p className="text-sidebar-foreground text-lg max-w-md">
-            Join leading holding companies using AI to optimize their portfolio performance.
+            Join leading organizations using AI to optimize their unit economics and performance.
           </p>
         </div>
         <div className="flex flex-col gap-2">
@@ -74,17 +75,32 @@ export default function SignupPage() {
             <ShieldCheck className="w-4 h-4 mt-0.5 text-primary shrink-0" />
             <p className="text-xs text-muted-foreground leading-relaxed">
               MD/CEOs and Analysts don't sign up here — they receive an invitation from
-              their company's IT Admin and use the link to set their password.
+              their organization's IT Admin and use the link to set their password.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="companyName">Holding Company Name</Label>
+              <Label htmlFor="companyName">Organization Name</Label>
               <div className="relative">
                 <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input id="companyName" className="pl-10" placeholder="Acme Holdings Ltd" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
+                <Input id="companyName" className="pl-10" placeholder="Acme Holdings / Grace Church / Global NGO" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="industryType">Organization Type</Label>
+              <select 
+                id="industryType" 
+                value={industryType}
+                onChange={(e) => setIndustryType(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="corporate">Corporate HoldCo</option>
+                <option value="religious">Religious Institution (Church, Mosque)</option>
+                <option value="ngo">Non-Governmental Organization (NGO)</option>
+                <option value="retail">Multi-Unit Retail / Supermarkets</option>
+              </select>
             </div>
 
             <div className="space-y-2">

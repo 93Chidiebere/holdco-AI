@@ -47,24 +47,24 @@ def seed_dummy_data(
         
     # Create KPIs
     for sub in subsidiary_records:
-        roace = round(random.uniform(5.0, 25.0), 1)
+        efficiency = round(random.uniform(5.0, 25.0), 1)
         kpi = models.KPI(
             holding_company_id=hc_id,
-            name=f"ROACE - {sub.name}",
-            value=roace,
+            name=f"Operating Efficiency - {sub.name}",
+            value=efficiency,
             unit="%",
-            trend="up" if roace > 15 else "down",
+            trend="up" if efficiency > 15 else "down",
             change=round(random.uniform(0.1, 3.0), 1)
         )
         db.add(kpi)
         
-        rev_growth = round(random.uniform(-5.0, 30.0), 1)
+        inflow_growth = round(random.uniform(-5.0, 30.0), 1)
         kpi2 = models.KPI(
             holding_company_id=hc_id,
-            name=f"Revenue Growth - {sub.name}",
-            value=rev_growth,
+            name=f"Inflow Growth - {sub.name}",
+            value=inflow_growth,
             unit="%",
-            trend="up" if rev_growth > 0 else "down",
+            trend="up" if inflow_growth > 0 else "down",
             change=round(random.uniform(0.1, 5.0), 1)
         )
         db.add(kpi2)
@@ -122,23 +122,21 @@ def seed_dummy_data(
 
     # Create Normalized Data for the last 12 months
     for sub in subsidiary_records:
-        base_revenue = random.uniform(1000000, 5000000)
+        base_inflow = random.uniform(1000000, 5000000)
         for i in range(12):
             date = datetime.utcnow() - timedelta(days=30 * i)
-            rev = base_revenue * (1 + random.uniform(-0.1, 0.2))
-            cogs = rev * random.uniform(0.3, 0.6)
-            opex = rev * random.uniform(0.1, 0.3)
-            pbt = rev - cogs - opex
+            inflow = base_inflow * (1 + random.uniform(-0.1, 0.2))
+            outflow = inflow * random.uniform(0.4, 0.8)
+            surplus = inflow - outflow
             db.add(models.NormalizedData(
                 subsidiary_id=sub.id,
                 date=date,
-                gross_revenue=rev,
-                cogs=cogs,
-                operating_expenses=opex,
-                pbt=pbt,
-                net_income=pbt * 0.7,
-                total_assets=rev * 3,
-                total_equity=rev * 1.5,
+                total_inflow=inflow,
+                total_outflow=outflow,
+                net_surplus=surplus,
+                cash_reserve=inflow * 1.5,
+                primary_kpi=inflow * random.uniform(0.01, 0.05),
+                secondary_kpi=outflow * random.uniform(0.1, 0.2),
             ))
             
     # Create some Intercompany Transactions for eliminations

@@ -33,43 +33,42 @@ def get_alerts(current_user: models.User = Depends(auth.get_current_user), db: S
         if len(data_records) >= 1:
             latest = data_records[0]
             
-            # Check 1: Negative Net Income
-            if latest.net_income and latest.net_income < 0:
+            # Check 1: Negative Net Surplus
+            if latest.net_surplus and latest.net_surplus < 0:
                 alerts.append({
                     "id": f"alert_loss_{sub.id}_{latest.id}",
                     "type": "critical",
-                    "title": f"Operating Loss Detected in {sub.name}",
-                    "description": f"The subsidiary reported a net loss of {latest.net_income:,.2f} in the latest period. Immediate cost review recommended.",
+                    "title": f"Operating Deficit Detected in {sub.name}",
+                    "description": f"The unit reported a deficit of {latest.net_surplus:,.2f} in the latest period. Immediate cost review recommended.",
                     "subsidiary": sub.name,
                     "timestamp": latest.date.isoformat(),
                     "read": False
                 })
                 
-            # Check 2: High Leverage (Debt to Equity)
-            # We don't have explicit debt, but if Total Equity < 20% of Total Assets, it's highly leveraged
-            if latest.total_assets and latest.total_equity:
-                if latest.total_equity < (latest.total_assets * 0.2):
+            # Check 2: Low Cash Reserve
+            if latest.cash_reserve is not None and latest.total_outflow:
+                if latest.cash_reserve < (latest.total_outflow * 0.5):
                     alerts.append({
                         "id": f"alert_leverage_{sub.id}_{latest.id}",
                         "type": "warning",
-                        "title": f"High Leverage Risk in {sub.name}",
-                        "description": f"Total Equity has fallen below 20% of Total Assets, indicating high debt exposure.",
+                        "title": f"Low Liquidity Risk in {sub.name}",
+                        "description": f"Cash reserves have fallen below 50% of monthly outflows, indicating high liquidity risk.",
                         "subsidiary": sub.name,
                         "timestamp": latest.date.isoformat(),
                         "read": False
                     })
             
-            # Check 3: Month-over-Month Revenue Drop
+            # Check 3: Month-over-Month Inflow Drop
             if len(data_records) == 2:
                 previous = data_records[1]
-                if previous.gross_revenue and previous.gross_revenue > 0:
-                    change = (latest.gross_revenue - previous.gross_revenue) / previous.gross_revenue
+                if previous.total_inflow and previous.total_inflow > 0:
+                    change = (latest.total_inflow - previous.total_inflow) / previous.total_inflow
                     if change < -0.15: # 15% drop
                         alerts.append({
                             "id": f"alert_revdrop_{sub.id}_{latest.id}",
                             "type": "critical",
-                            "title": f"Severe Revenue Drop in {sub.name}",
-                            "description": f"Gross revenue dropped by {abs(change)*100:.1f}% compared to the previous period.",
+                            "title": f"Severe Inflow Drop in {sub.name}",
+                            "description": f"Total inflow dropped by {abs(change)*100:.1f}% compared to the previous period.",
                             "subsidiary": sub.name,
                             "timestamp": latest.date.isoformat(),
                             "read": False
