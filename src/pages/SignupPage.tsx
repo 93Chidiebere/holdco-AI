@@ -100,6 +100,11 @@ export default function SignupPage() {
                 <option value="religious">Religious Institution (Church, Mosque)</option>
                 <option value="ngo">Non-Governmental Organization (NGO)</option>
                 <option value="retail">Multi-Unit Retail / Supermarkets</option>
+                <option value="healthcare">Healthcare Networks (Hospital Chains, Clinics)</option>
+                <option value="education">Educational Institutions (School Networks, Campuses)</option>
+                <option value="real_estate">Real Estate & Property Management</option>
+                <option value="logistics">Logistics & Transportation (Hubs, Gas Stations)</option>
+                <option value="franchise">Franchises (Fast Food, Services)</option>
               </select>
             </div>
 
