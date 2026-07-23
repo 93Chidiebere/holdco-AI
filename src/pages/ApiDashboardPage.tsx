@@ -8,7 +8,7 @@ import { Activity, CheckCircle2, XCircle, Clock, Zap, Target, Users, BarChart3, 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 
 // Visualizers for different job types
-const ExecutiveSummaryVisualizer = ({ result }: { result: any }) => {
+export const ExecutiveSummaryVisualizer = ({ result }: { result: any }) => {
   const data = result.llm_interpretation || result;
   if (!data) return <p>No data available.</p>;
 
@@ -35,7 +35,7 @@ const ExecutiveSummaryVisualizer = ({ result }: { result: any }) => {
   );
 };
 
-const PredictiveChurnVisualizer = ({ result }: { result: any }) => {
+export const PredictiveChurnVisualizer = ({ result }: { result: any }) => {
   const summary = result.summary || {};
   const llm = result.llm_interpretation || {};
 
@@ -72,7 +72,7 @@ const PredictiveChurnVisualizer = ({ result }: { result: any }) => {
   );
 };
 
-const ClusterAnalysisVisualizer = ({ result }: { result: any }) => {
+export const ClusterAnalysisVisualizer = ({ result }: { result: any }) => {
   const llm = result.llm_interpretation || {};
   const clusters = Object.keys(llm).filter(k => k.startsWith('cluster_'));
 
@@ -93,7 +93,7 @@ const ClusterAnalysisVisualizer = ({ result }: { result: any }) => {
   );
 };
 
-const CapitalAllocationVisualizer = ({ result }: { result: any }) => {
+export const CapitalAllocationVisualizer = ({ result }: { result: any }) => {
   const data = result;
   const llm = result.llm_interpretation || {};
 

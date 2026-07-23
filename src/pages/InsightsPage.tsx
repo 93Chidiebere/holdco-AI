@@ -1,9 +1,12 @@
+import { useState } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useInsights, useSubsidiaries, useGeneratePortfolioInsights } from "@/hooks/useApi";
+import { useInsights, useSubsidiaries, useGenerateApiExecutiveSummary, usePollAsyncJob } from "@/hooks/useApi";
 import { AlertTriangle, TrendingUp, Shield, Zap, Activity, Brain } from "lucide-react";
+import { toast } from "sonner";
+import { ExecutiveSummaryVisualizer } from "./ApiDashboardPage";
 
 const severityColors: Record<string, string> = {
   low: "bg-info/10 text-info border-info/20",
@@ -15,7 +18,10 @@ const severityColors: Record<string, string> = {
 export default function InsightsPage() {
   const { data: insights = [], isLoading } = useInsights();
   const { data: subsidiaries = [] } = useSubsidiaries();
-  const { mutate: runPortfolioAnalysis, isPending: isGenerating } = useGeneratePortfolioInsights();
+  
+  const { mutate: generateSummary, isPending: isGenerating } = useGenerateApiExecutiveSummary();
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const { data: jobStatus } = usePollAsyncJob(activeJobId);
 
   const grouped = {
     critical: insights.filter((i: any) => i.severity === "critical"),
@@ -34,6 +40,21 @@ export default function InsightsPage() {
     }
   };
 
+  const handleGenerate = () => {
+    generateSummary({
+      timeframe: "Q3 2026",
+      insights: [
+        { type: "anomaly", description: "Unusually high marketing spend in July" },
+        { type: "trend", description: "Consistent 15% revenue growth month over month" }
+      ]
+    }, {
+      onSuccess: (res: any) => {
+        setActiveJobId(res.data.job_id);
+        toast.success("Executive synthesis started in the background!");
+      }
+    });
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -45,15 +66,31 @@ export default function InsightsPage() {
           </div>
           <div className="ml-auto">
             <Button 
-              onClick={() => runPortfolioAnalysis()} 
-              disabled={isGenerating}
-              className="gap-2"
+              onClick={handleGenerate} 
+              disabled={isGenerating || (activeJobId && jobStatus?.status === 'processing')}
+              className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <Brain className="w-4 h-4" />
-              {isGenerating ? "Analyzing Portfolio..." : "Run Portfolio Analysis"}
+              {isGenerating || (activeJobId && jobStatus?.status === 'processing') ? "Synthesizing..." : "Generate AI Memo"}
             </Button>
           </div>
         </div>
+
+        {activeJobId && jobStatus?.status === 'completed' && jobStatus.result && (
+          <div className="mb-6 animate-in slide-in-from-top-4 duration-500">
+            <h2 className="text-xl font-semibold mb-4 text-purple-700 flex items-center gap-2">
+              <Brain className="w-5 h-5" /> Executive Synthesis Memo
+            </h2>
+            <Card className="border-purple-200 bg-purple-50/30">
+              <CardContent className="p-6">
+                <ExecutiveSummaryVisualizer result={jobStatus.result} />
+                <div className="mt-4 flex justify-end">
+                  <Button onClick={() => setActiveJobId(null)} variant="outline" size="sm">Dismiss</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Summary */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 import schemas
-from services.api_security import get_holding_company_from_api_key
+from services.api_security import get_holding_company_from_api_key_or_user
 from services.webhook_service import process_analysis_job
 import json
 
@@ -14,7 +14,7 @@ def submit_analysis_job(
     payload: schemas.AnalyzePayload,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+    company: models.HoldingCompany = Depends(get_holding_company_from_api_key_or_user)
 ):
     """
     Submit unit financial data for asynchronous Anomaly & Insight Detection.
@@ -50,7 +50,7 @@ async def submit_forecast_job(
     request: schemas.ForecastRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key_or_user)
 ):
     """
     Submit historical data for statistical forecasting and AI insights.
@@ -91,7 +91,7 @@ async def submit_variance_job(
     request: schemas.VarianceRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key_or_user)
 ):
     """
     Submit actual and budgeted data for variance analysis and AI insights.
@@ -134,7 +134,7 @@ async def submit_scenario_job(
     request: schemas.ScenarioModelingRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key_or_user)
 ):
     """
     Submit a baseline state and parameters for what-if scenario modeling and AI insights.
@@ -179,7 +179,7 @@ async def submit_capital_job(
     request: schemas.CapitalAllocationRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key_or_user)
 ):
     """
     Submit capital reserves and unit ROI/Risk for optimal capital allocation.
@@ -223,7 +223,7 @@ async def submit_executive_summary_job(
     request: schemas.ExecutiveSummaryRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key_or_user)
 ):
     """
     Submit a batch of raw insights generated over a quarter to synthesize a board-level executive memo.
@@ -265,7 +265,7 @@ async def submit_churn_job(
     request: schemas.PredictiveChurnRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key_or_user)
 ):
     """
     Submit customer data for churn risk prediction and retention strategy generation.
@@ -307,7 +307,7 @@ async def submit_cluster_job(
     request: schemas.ClusterAnalysisRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key_or_user)
 ):
     """
     Submit arbitrary numerical feature data to be clustered, with AI persona assignment.
@@ -351,7 +351,7 @@ async def submit_normalize_job(
     request: schemas.NormalizeRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key_or_user)
 ):
     """
     Submit messy, unstructured data arrays to be cleaned, standardized, and analyzed.
@@ -391,7 +391,7 @@ async def submit_aggregate_job(
     request: schemas.AggregateRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
-    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key_or_user)
 ):
     """
     Submit data to be grouped and aggregated with AI-generated distribution insights.
@@ -433,7 +433,7 @@ async def submit_aggregate_job(
 def get_job_status(
     job_id: str,
     db: Session = Depends(get_db),
-    company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+    company: models.HoldingCompany = Depends(get_holding_company_from_api_key_or_user)
 ):
     """
     Poll for job status.
@@ -466,7 +466,7 @@ def get_job_status(
 @router.get("/jobs", response_model=list[schemas.AsyncJobResponse])
 def list_jobs(
     db: Session = Depends(get_db),
-    company: models.HoldingCompany = Depends(get_holding_company_from_api_key),
+    company: models.HoldingCompany = Depends(get_holding_company_from_api_key_or_user),
     limit: int = 50
 ):
     """

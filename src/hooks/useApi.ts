@@ -225,3 +225,30 @@ export function useAuditLogs() {
     queryFn: () => fetcher("/api/system/audit-logs"),
   });
 }
+
+// Dogfooding API Hooks (v1 Async API)
+export function useGenerateApiCapitalAllocation() {
+  return useMutation({
+    mutationFn: (payload: any) => fetcher("/api/v1/capital-allocation", { method: "POST", body: JSON.stringify(payload) })
+  });
+}
+
+export function useGenerateApiExecutiveSummary() {
+  return useMutation({
+    mutationFn: (payload: any) => fetcher("/api/v1/executive-summary", { method: "POST", body: JSON.stringify(payload) })
+  });
+}
+
+export function usePollAsyncJob(jobId: string | null) {
+  return useQuery({
+    queryKey: ["asyncJob", jobId],
+    queryFn: () => fetcher(`/api/v1/jobs/${jobId}`),
+    enabled: !!jobId,
+    refetchInterval: (data: any) => {
+      // If job is complete or failed, stop polling
+      if (data?.status === 'completed' || data?.status === 'failed') return false;
+      return 3000; // poll every 3s
+    }
+  });
+}
+

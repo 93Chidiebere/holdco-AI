@@ -8,11 +8,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { CapitalRecommendation } from "@/types";
-import { Wallet, ArrowRightLeft, TrendingUp, AlertTriangle, Scissors, DollarSign, Check, X, Clock, UserPlus } from "lucide-react";
+import { Wallet, ArrowRightLeft, TrendingUp, AlertTriangle, Scissors, DollarSign, Check, X, Clock, UserPlus, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/usePermissions";
 import PermissionTooltip from "@/components/PermissionTooltip";
-import { useRecommendations } from "@/hooks/useApi";
+import { useRecommendations, useGenerateApiCapitalAllocation, usePollAsyncJob } from "@/hooks/useApi";
+import { CapitalAllocationVisualizer } from "./ApiDashboardPage";
 
 const typeIcons: Record<string, typeof Wallet> = {
   reallocation: ArrowRightLeft,
@@ -56,7 +57,11 @@ export default function CapitalPage() {
   const { hasPermission } = usePermissions();
   const canManage = hasPermission("manage_capital");
   const { data: recommendationsData = [], isLoading } = useRecommendations();
+  const { mutate: generateAllocation, isPending: isGenerating } = useGenerateApiCapitalAllocation();
   
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const { data: jobStatus } = usePollAsyncJob(activeJobId);
+
   const [recommendations, setRecommendations] = useState<CapitalRecommendation[]>([]);
   const [assignDialog, setAssignDialog] = useState<string | null>(null);
   const [assignee, setAssignee] = useState("");
@@ -68,6 +73,22 @@ export default function CapitalPage() {
       setRecommendations(recommendationsData.map((r: any) => ({ ...r, status: r.status || "pending" })));
     }
   }, [recommendationsData]);
+
+  const handleGenerate = () => {
+    generateAllocation({
+      total_available_capital: 5000000,
+      units: [
+        { unit_id: "subsidiary_1", unit_name: "AgriGrow Farms", requested_capital: 2000000, expected_roi_pct: 18.5, risk_score_1_to_10: 4 },
+        { unit_id: "subsidiary_2", unit_name: "FinServe Holdings", requested_capital: 4000000, expected_roi_pct: 12.0, risk_score_1_to_10: 2 },
+        { unit_id: "subsidiary_3", unit_name: "TechNova Solutions", requested_capital: 1500000, expected_roi_pct: 25.0, risk_score_1_to_10: 8 }
+      ]
+    }, {
+      onSuccess: (res: any) => {
+        setActiveJobId(res.data.job_id);
+        toast.success("Allocation engine started in the background!");
+      }
+    });
+  };
 
   const updateStatus = (id: string, status: "approved" | "rejected" | "deferred") => {
     setRecommendations((prev) =>
@@ -103,6 +124,10 @@ export default function CapitalPage() {
             </div>
           </div>
           <div className="flex gap-2">
+            <Button onClick={handleGenerate} disabled={isGenerating || (activeJobId && jobStatus?.status === 'processing')} className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90 mr-4">
+              <Zap className="w-4 h-4" />
+              {isGenerating || (activeJobId && jobStatus?.status === 'processing') ? "Generating..." : "Generate AI Allocation"}
+            </Button>
             {["all", "pending", "approved", "rejected", "deferred"].map((f) => (
               <Button
                 key={f}
@@ -116,6 +141,22 @@ export default function CapitalPage() {
             ))}
           </div>
         </div>
+
+        {activeJobId && jobStatus?.status === 'completed' && jobStatus.result && (
+          <div className="mb-6 animate-in slide-in-from-top-4 duration-500">
+            <h2 className="text-xl font-semibold mb-4 text-emerald-700 flex items-center gap-2">
+              <Zap className="w-5 h-5" /> New Optimal Allocation
+            </h2>
+            <Card className="border-emerald-200 bg-emerald-50/30">
+              <CardContent className="p-6">
+                <CapitalAllocationVisualizer result={jobStatus.result} />
+                <div className="mt-4 flex justify-end">
+                  <Button onClick={() => setActiveJobId(null)} variant="outline" size="sm">Dismiss</Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <div className="space-y-4">
           {filtered.map((rec, i) => {
