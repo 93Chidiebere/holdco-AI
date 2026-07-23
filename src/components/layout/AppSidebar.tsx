@@ -27,7 +27,8 @@ import {
   Globe,
   Plug,
   Leaf,
-  Terminal
+  Terminal,
+  ActivitySquare
 } from "lucide-react";
 import { useState } from "react";
 
@@ -46,6 +47,7 @@ const navItems: { to: string; icon: typeof LayoutDashboard; label: string; permi
   { to: "/audit", icon: ClipboardList, label: "Audit Trail", permission: "view_audit" },
   { to: "/settings", icon: Settings, label: "Settings", permission: "view_settings" },
   { to: "/developer", icon: Terminal, label: "Developer Settings", permission: "view_settings" },
+  { to: "/api-dashboard", icon: ActivitySquare, label: "API Workspace", permission: "view_settings" },
 ];
 
 const platformNavItems = [

@@ -24,6 +24,7 @@ import ExportPage from "./pages/ExportPage";
 import AuditTrailPage from "./pages/AuditTrailPage";
 import SettingsPage from "./pages/SettingsPage";
 import DeveloperSettingsPage from "./pages/DeveloperSettingsPage";
+import ApiDashboardPage from "./pages/ApiDashboardPage";
 import PlatformOverviewPage from "./pages/PlatformOverviewPage";
 import PortalUploadPage from "./pages/PortalUploadPage";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -66,6 +67,7 @@ function AppRoutes() {
       <Route path="/audit" element={<ProtectedRoute><ProtectedPage permission="view_audit"><AuditTrailPage /></ProtectedPage></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><ProtectedPage permission="view_settings"><SettingsPage /></ProtectedPage></ProtectedRoute>} />
       <Route path="/developer" element={<ProtectedRoute><ProtectedPage permission="view_settings"><DeveloperSettingsPage /></ProtectedPage></ProtectedRoute>} />
+      <Route path="/api-dashboard" element={<ProtectedRoute><ProtectedPage permission="view_settings"><ApiDashboardPage /></ProtectedPage></ProtectedRoute>} />
       <Route path="/esg" element={<ProtectedRoute><ESGPage /></ProtectedRoute>} />
       <Route path="/integrations" element={<ProtectedRoute><IntegrationsPage /></ProtectedRoute>} />
       <Route path="/portal/:token" element={<PortalUploadPage />} />
