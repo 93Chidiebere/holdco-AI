@@ -318,3 +318,9 @@ class ClusterAnalysisRequest(BaseModel):
 class NormalizeRequest(BaseModel):
     webhook_url: Optional[HttpUrl] = None
     raw_data: List[Dict[str, Any]] = Field(description="Array of messy, unstructured data records to normalize")
+
+class AggregateRequest(BaseModel):
+    webhook_url: Optional[HttpUrl] = None
+    data: List[Dict[str, Any]] = Field(description="Array of data records to aggregate")
+    group_by: str = Field(description="The key to group the data by, e.g. 'region' or 'department'")
+    metric: str = Field(description="The numerical key to aggregate, e.g. 'sales' or 'headcount'")

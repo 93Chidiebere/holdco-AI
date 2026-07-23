@@ -418,3 +418,59 @@ def normalize_data(raw_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         },
         "normalized_data": normalized_records
     }
+
+def aggregate_data(data: List[Dict[str, Any]], group_by: str, metric: str) -> Dict[str, Any]:
+    """
+    Groups data by a specified key and calculates sum, average, min, and max for the given metric.
+    """
+    if not data:
+        return {"error": "No data provided"}
+        
+    grouped = {}
+    
+    # Group and accumulate values
+    for row in data:
+        group_val = str(row.get(group_by, "Unknown"))
+        metric_val = row.get(metric, 0)
+        
+        try:
+            metric_val = float(metric_val)
+        except (ValueError, TypeError):
+            continue # Skip non-numeric values for the metric
+            
+        if group_val not in grouped:
+            grouped[group_val] = []
+            
+        grouped[group_val].append(metric_val)
+        
+    # Calculate statistics per group
+    aggregations = []
+    total_sum = 0
+    
+    for g_key, values in grouped.items():
+        if not values:
+            continue
+            
+        g_sum = sum(values)
+        total_sum += g_sum
+        g_count = len(values)
+        
+        aggregations.append({
+            group_by: g_key,
+            "count": g_count,
+            f"{metric}_sum": g_sum,
+            f"{metric}_avg": g_sum / g_count,
+            f"{metric}_min": min(values),
+            f"{metric}_max": max(values)
+        })
+        
+    # Sort by sum descending
+    aggregations = sorted(aggregations, key=lambda x: x[f"{metric}_sum"], reverse=True)
+    
+    return {
+        "group_by": group_by,
+        "metric": metric,
+        "total_groups": len(aggregations),
+        "total_metric_sum": total_sum,
+        "aggregations": aggregations
+    }

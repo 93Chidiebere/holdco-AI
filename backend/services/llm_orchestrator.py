@@ -497,3 +497,59 @@ def generate_normalization_insights(normalized_data: Dict[str, Any]) -> Dict[str
         result = normalized_data.copy()
         result["llm_interpretation"] = {"error": str(e)}
         return result
+
+def generate_aggregation_insights(aggregation_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Takes the output of the data aggregation engine and generates an insight report.
+    """
+    if not aggregation_data or "error" in aggregation_data:
+        return aggregation_data
+        
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # Only pass the top 5 groups to save context limit if there are many
+        top_groups = aggregation_data.get('aggregations', [])[:5]
+        
+        prompt = f"""
+        You are an expert Data Analyst AI for HoldCo AI.
+        I have grouped a dataset by '{aggregation_data.get('group_by')}' and aggregated the metric '{aggregation_data.get('metric')}'.
+        
+        Aggregation Summary (Top 5 groups by volume):
+        {json.dumps(top_groups, indent=2)}
+        
+        Please provide a concise analysis of the distribution across these groups.
+        You MUST return your response as a valid JSON object.
+        Do not include any markdown formatting like ```json. Just raw JSON.
+        
+        Structure:
+        {{
+            "distribution_analysis": "A 1-2 sentence analysis of how the metric is distributed across the top groups.",
+            "standout_performer": "Identify the top performing group and hypothesize why.",
+            "attention_area": "Identify a group that might need attention (e.g. lowest average or highest variance)."
+        }}
+        """
+
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.GenerationConfig(
+                response_mime_type="application/json",
+            )
+        )
+        
+        try:
+            insight = json.loads(response.text)
+            result = aggregation_data.copy()
+            result["llm_interpretation"] = insight
+            return result
+        except json.JSONDecodeError:
+            print("Failed to decode LLM response as JSON")
+            result = aggregation_data.copy()
+            result["llm_interpretation"] = {"error": "Failed to decode interpretation"}
+            return result
+            
+    except Exception as e:
+        print(f"Error calling Gemini for aggregation analysis: {e}")
+        result = aggregation_data.copy()
+        result["llm_interpretation"] = {"error": str(e)}
+        return result

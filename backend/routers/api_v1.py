@@ -386,6 +386,49 @@ async def submit_normalize_job(
         "message": "Data normalization job accepted and processing in background."
     }
 
+@router.post("/aggregate", status_code=status.HTTP_202_ACCEPTED)
+async def submit_aggregate_job(
+    request: schemas.AggregateRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+):
+    """
+    Submit data to be grouped and aggregated with AI-generated distribution insights.
+    Returns a Job ID immediately. Processing happens in the background.
+    """
+    job = models.AsyncJob(
+        holding_company_id=holding_company.id,
+        job_type="aggregate_data",
+        status="pending",
+        payload=json.dumps({
+            "group_by": request.group_by,
+            "metric": request.metric,
+            "webhook_url": str(request.webhook_url) if request.webhook_url else None
+        }),
+        webhook_url=str(request.webhook_url) if request.webhook_url else None
+    )
+    
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    
+    from services.webhook_service import process_aggregate_job
+    background_tasks.add_task(
+        process_aggregate_job, 
+        job.id, 
+        str(request.webhook_url) if request.webhook_url else None,
+        request.data,
+        request.group_by,
+        request.metric
+    )
+    
+    return {
+        "job_id": job.id,
+        "status": "accepted",
+        "message": "Data aggregation job accepted and processing in background."
+    }
+
 @router.get("/jobs/{job_id}", response_model=schemas.AsyncJobResponse)
 def get_job_status(
     job_id: str,
