@@ -79,3 +79,39 @@ def revoke_api_key(
     db.delete(db_key)
     db.commit()
     return None
+
+@router.get("/jobs", response_model=list[schemas.AsyncJobResponse])
+def list_dashboard_jobs(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+    limit: int = 50
+):
+    """
+    Fetch the latest async jobs for the dashboard user.
+    """
+    if not current_user.holding_company_id:
+        return []
+        
+    db_jobs = db.query(models.AsyncJob).filter(
+        models.AsyncJob.holding_company_id == current_user.holding_company_id
+    ).order_by(models.AsyncJob.created_at.desc()).limit(limit).all()
+    
+    response_list = []
+    for job in db_jobs:
+        job_data = {
+            "id": job.id,
+            "job_type": job.job_type,
+            "status": job.status,
+            "created_at": job.created_at,
+            "completed_at": job.completed_at,
+            "error": job.error
+        }
+        if job.result:
+            import json
+            try:
+                job_data["result"] = json.loads(job.result)
+            except:
+                job_data["result"] = {"raw": job.result}
+        response_list.append(job_data)
+        
+    return response_list

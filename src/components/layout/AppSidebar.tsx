@@ -26,7 +26,8 @@ import {
   ChevronRight,
   Globe,
   Plug,
-  Leaf
+  Leaf,
+  Terminal
 } from "lucide-react";
 import { useState } from "react";
 
@@ -44,6 +45,7 @@ const navItems: { to: string; icon: typeof LayoutDashboard; label: string; permi
   { to: "/integrations", icon: Plug, label: "Integrations Hub", permission: "view_settings" },
   { to: "/audit", icon: ClipboardList, label: "Audit Trail", permission: "view_audit" },
   { to: "/settings", icon: Settings, label: "Settings", permission: "view_settings" },
+  { to: "/developer", icon: Terminal, label: "Developer Settings", permission: "view_settings" },
 ];
 
 const platformNavItems = [

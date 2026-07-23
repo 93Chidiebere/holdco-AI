@@ -78,3 +78,36 @@ def get_job_status(
             response_data["result"] = {"raw": db_job.result}
             
     return response_data
+
+@router.get("/jobs", response_model=list[schemas.AsyncJobResponse])
+def list_jobs(
+    db: Session = Depends(get_db),
+    company: models.HoldingCompany = Depends(get_holding_company_from_api_key),
+    limit: int = 50
+):
+    """
+    Fetch the latest async jobs (webhook logs).
+    """
+    db_jobs = db.query(models.AsyncJob).filter(
+        models.AsyncJob.holding_company_id == company.id
+    ).order_by(models.AsyncJob.created_at.desc()).limit(limit).all()
+    
+    response_list = []
+    for job in db_jobs:
+        job_data = {
+            "id": job.id,
+            "job_type": job.job_type,
+            "status": job.status,
+            "created_at": job.created_at,
+            "completed_at": job.completed_at,
+            "error": job.error
+        }
+        if job.result:
+            try:
+                job_data["result"] = json.loads(job.result)
+            except:
+                job_data["result"] = {"raw": job.result}
+        response_list.append(job_data)
+        
+    return response_list
+
