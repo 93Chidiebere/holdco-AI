@@ -10,7 +10,12 @@ app = FastAPI(title="HoldCo AI Platform API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For dev only, restrict in production
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://localhost:8080", 
+        "https://holdcoai.online", 
+        "https://www.holdcoai.online"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
