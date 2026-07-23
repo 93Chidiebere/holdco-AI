@@ -4,7 +4,24 @@ import models
 from database import engine
 from routers import auth, subsidiaries, kpis, scenarios, reports, insights, recommendations, seed, portal, dashboard, system, api_keys, api_v1
 
+from sqlalchemy import text
+
 models.Base.metadata.create_all(bind=engine)
+
+# Quick auto-migrations for newly added columns during pivot
+try:
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE holding_companies ADD COLUMN currency VARCHAR DEFAULT 'NGN'"))
+        conn.commit()
+except Exception:
+    pass
+
+try:
+    with engine.connect() as conn:
+        conn.execute(text("ALTER TABLE holding_companies ADD COLUMN industry_type VARCHAR DEFAULT 'corporate'"))
+        conn.commit()
+except Exception:
+    pass
 
 app = FastAPI(title="HoldCo AI Platform API")
 
