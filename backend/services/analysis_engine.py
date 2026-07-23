@@ -127,3 +127,50 @@ def generate_forecast(data: List[Dict[str, Any]], metric: str, periods: int) -> 
         "historical_data": historical.to_dict('records'),
         "forecast": forecasts
     }
+
+def calculate_variance(actuals: List[Dict[str, Any]], budgets: List[Dict[str, Any]], metric: str) -> Dict[str, Any]:
+    """
+    Takes actual and budget data arrays and calculates exact percentage deviations.
+    """
+    if not actuals or not budgets:
+        return {"error": "Missing actuals or budgets data."}
+        
+    df_act = pd.DataFrame(actuals)
+    df_bud = pd.DataFrame(budgets)
+    
+    if 'date' not in df_act.columns or 'date' not in df_bud.columns:
+        return {"error": "Both datasets must contain a 'date' column."}
+        
+    # Standardize dates and merge
+    df_act['date'] = pd.to_datetime(df_act['date']).dt.strftime('%Y-%m')
+    df_bud['date'] = pd.to_datetime(df_bud['date']).dt.strftime('%Y-%m')
+    
+    # Aggregate in case there are multiple entries per month
+    df_act = df_act.groupby('date')[metric].sum().reset_index().rename(columns={metric: 'actual'})
+    df_bud = df_bud.groupby('date')[metric].sum().reset_index().rename(columns={metric: 'budget'})
+    
+    merged = pd.merge(df_bud, df_act, on='date', how='outer').fillna(0)
+    
+    # Calculate Variance: Actual - Budget
+    merged['variance_value'] = merged['actual'] - merged['budget']
+    
+    # Calculate Variance Percentage (handle division by zero)
+    merged['variance_pct'] = np.where(merged['budget'] != 0, 
+                                      (merged['variance_value'] / merged['budget']) * 100, 
+                                      0)
+    
+    total_budget = float(merged['budget'].sum())
+    total_actual = float(merged['actual'].sum())
+    total_variance = total_actual - total_budget
+    total_variance_pct = (total_variance / total_budget * 100) if total_budget != 0 else 0
+    
+    return {
+        "metric": metric,
+        "overall_summary": {
+            "total_budget": total_budget,
+            "total_actual": total_actual,
+            "total_variance_value": total_variance,
+            "total_variance_pct": total_variance_pct
+        },
+        "period_breakdown": merged.to_dict('records')
+    }

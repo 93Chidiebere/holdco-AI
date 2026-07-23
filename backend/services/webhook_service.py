@@ -7,6 +7,7 @@ import models
 from services.analysis_engine import detect_anomalies
 from services.llm_orchestrator import generate_insights_from_anomalies
 from datetime import datetime
+from typing import List, Dict, Any
 
 MAX_RETRIES = 3
 RETRY_DELAY = 5 # seconds
@@ -98,6 +99,48 @@ def process_forecast_job(job_id: str, webhook_url: str | None, payload_data: Lis
             
     except Exception as e:
         print(f"Error in process_forecast_job: {e}")
+        job = db.query(models.AsyncJob).filter(models.AsyncJob.id == job_id).first()
+        if job:
+            job.status = "failed"
+            job.error = str(e)
+            db.commit()
+            if webhook_url:
+                deliver_webhook(webhook_url, job_id, "failed", {"error": str(e)}, job, db)
+    finally:
+        db.close()
+
+def process_variance_job(job_id: str, webhook_url: str | None, actuals: List[Dict[str, Any]], budgets: List[Dict[str, Any]], metric: str):
+    """
+    Background worker that runs variance analysis and LLM interpretation.
+    """
+    db: Session = SessionLocal()
+    try:
+        job = db.query(models.AsyncJob).filter(models.AsyncJob.id == job_id).first()
+        if not job:
+            return
+            
+        job.status = "processing"
+        db.commit()
+        
+        # 1. Run Math Engine
+        from services.analysis_engine import calculate_variance
+        variance_output = calculate_variance(actuals, budgets, metric)
+        
+        # 2. Run LLM Engine (Gemini)
+        from services.llm_orchestrator import generate_variance_insights
+        final_insights = generate_variance_insights(variance_output)
+        
+        # 3. Save Results
+        job.result = json.dumps(final_insights)
+        job.status = "completed"
+        db.commit()
+        
+        # 4. Deliver Webhook
+        if webhook_url:
+            deliver_webhook(webhook_url, job_id, "completed", final_insights, job, db)
+            
+    except Exception as e:
+        print(f"Error in process_variance_job: {e}")
         job = db.query(models.AsyncJob).filter(models.AsyncJob.id == job_id).first()
         if job:
             job.status = "failed"

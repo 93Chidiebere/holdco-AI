@@ -261,3 +261,9 @@ class ForecastRequest(BaseModel):
     data: List[Dict[str, Any]]
     forecast_periods: int = Field(default=3, description="Number of periods to forecast into the future")
     metric: str = Field(default="revenue", description="The key metric to forecast (e.g., revenue, net_surplus)")
+
+class VarianceRequest(BaseModel):
+    webhook_url: Optional[HttpUrl] = None
+    actuals: List[Dict[str, Any]] = Field(description="Array of actual financial data")
+    budgets: List[Dict[str, Any]] = Field(description="Array of budgeted financial data to compare against")
+    metric: str = Field(default="revenue", description="The key metric to analyze for variance")

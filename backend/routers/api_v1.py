@@ -86,6 +86,49 @@ async def submit_forecast_job(
         "message": "Forecast job accepted and processing in background."
     }
 
+@router.post("/variance-analysis", status_code=status.HTTP_202_ACCEPTED)
+async def submit_variance_job(
+    request: schemas.VarianceRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+):
+    """
+    Submit actual and budgeted data for variance analysis and AI insights.
+    Returns a Job ID immediately. Processing happens in the background.
+    """
+    job = models.AsyncJob(
+        holding_company_id=holding_company.id,
+        job_type="variance_analysis",
+        status="pending",
+        payload=json.dumps({
+            "actuals": request.actuals, 
+            "budgets": request.budgets,
+            "webhook_url": str(request.webhook_url) if request.webhook_url else None
+        }),
+        webhook_url=str(request.webhook_url) if request.webhook_url else None
+    )
+    
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    
+    from services.webhook_service import process_variance_job
+    background_tasks.add_task(
+        process_variance_job, 
+        job.id, 
+        str(request.webhook_url) if request.webhook_url else None,
+        request.actuals,
+        request.budgets,
+        request.metric
+    )
+    
+    return {
+        "job_id": job.id,
+        "status": "accepted",
+        "message": "Variance analysis job accepted and processing in background."
+    }
+
 @router.get("/jobs/{job_id}", response_model=schemas.AsyncJobResponse)
 def get_job_status(
     job_id: str,

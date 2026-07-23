@@ -119,3 +119,61 @@ def generate_forecast_insights(forecast_data: Dict[str, Any]) -> Dict[str, Any]:
         result = forecast_data.copy()
         result["llm_interpretation"] = {"error": str(e)}
         return result
+
+def generate_variance_insights(variance_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Takes exact calculated budget vs actual variance and uses Gemini to interpret it.
+    """
+    if not variance_data or "error" in variance_data:
+        return variance_data
+        
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        prompt = f"""
+        You are an expert Financial Analyst AI for HoldCo AI.
+        I have run a Budget vs. Actual Variance Analysis.
+        
+        Metric Analyzed: {variance_data.get('metric')}
+        
+        Overall Summary:
+        {json.dumps(variance_data.get('overall_summary'), indent=2)}
+        
+        Period Breakdown (Month by Month):
+        {json.dumps(variance_data.get('period_breakdown'), indent=2)}
+        
+        Please provide a concise financial interpretation.
+        You MUST return your response as a valid JSON object.
+        Do not include any markdown formatting like ```json. Just raw JSON.
+        
+        Structure:
+        {{
+            "root_cause_hypothesis": "A 1-2 sentence hypothesis on why the variance occurred based on the month-by-month breakdown.",
+            "is_structural_issue": boolean, // True if the variance seems like a persistent structural issue, False if it looks like a one-off timing issue
+            "recommendation": "One clear strategic recommendation."
+        }}
+        """
+
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.GenerationConfig(
+                response_mime_type="application/json",
+            )
+        )
+        
+        try:
+            insight = json.loads(response.text)
+            result = variance_data.copy()
+            result["llm_interpretation"] = insight
+            return result
+        except json.JSONDecodeError:
+            print("Failed to decode LLM response as JSON")
+            result = variance_data.copy()
+            result["llm_interpretation"] = {"error": "Failed to decode interpretation"}
+            return result
+            
+    except Exception as e:
+        print(f"Error calling Gemini for variance: {e}")
+        result = variance_data.copy()
+        result["llm_interpretation"] = {"error": str(e)}
+        return result
