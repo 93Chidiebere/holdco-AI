@@ -177,3 +177,62 @@ def generate_variance_insights(variance_data: Dict[str, Any]) -> Dict[str, Any]:
         result = variance_data.copy()
         result["llm_interpretation"] = {"error": str(e)}
         return result
+
+def generate_scenario_insights(scenario_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Takes exact calculated scenario modeling impact and uses Gemini to interpret it.
+    """
+    if not scenario_data or "error" in scenario_data:
+        return scenario_data
+        
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        prompt = f"""
+        You are an expert Financial Analyst AI for HoldCo AI.
+        I have run a Scenario Modeling (What-If) Analysis.
+        
+        Baseline State:
+        {json.dumps(scenario_data.get('baseline_state'), indent=2)}
+        
+        Simulated State (After changes applied):
+        {json.dumps(scenario_data.get('simulated_state'), indent=2)}
+        
+        Impact Analysis:
+        {json.dumps(scenario_data.get('impact'), indent=2)}
+        
+        Please provide a concise financial interpretation of this scenario.
+        You MUST return your response as a valid JSON object.
+        Do not include any markdown formatting like ```json. Just raw JSON.
+        
+        Structure:
+        {{
+            "summary": "A 1-2 sentence summary of the scenario's overall impact on the bottom line.",
+            "risk_or_opportunity": "Identify the primary risk if this scenario plays out, or the primary opportunity.",
+            "mitigation_strategy": "One clear strategic recommendation to either mitigate the risk or capitalize on the opportunity."
+        }}
+        """
+
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.GenerationConfig(
+                response_mime_type="application/json",
+            )
+        )
+        
+        try:
+            insight = json.loads(response.text)
+            result = scenario_data.copy()
+            result["llm_interpretation"] = insight
+            return result
+        except json.JSONDecodeError:
+            print("Failed to decode LLM response as JSON")
+            result = scenario_data.copy()
+            result["llm_interpretation"] = {"error": "Failed to decode interpretation"}
+            return result
+            
+    except Exception as e:
+        print(f"Error calling Gemini for scenario: {e}")
+        result = scenario_data.copy()
+        result["llm_interpretation"] = {"error": str(e)}
+        return result

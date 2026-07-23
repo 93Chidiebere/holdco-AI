@@ -174,3 +174,49 @@ def calculate_variance(actuals: List[Dict[str, Any]], budgets: List[Dict[str, An
         },
         "period_breakdown": merged.to_dict('records')
     }
+
+def simulate_scenario(baseline: Dict[str, float], parameters: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Takes a baseline financial state and applies 'what-if' percentage changes to see the net impact.
+    Assumes standard simplified P&L metrics: revenue, cogs, opex.
+    Net Surplus = revenue - cogs - opex.
+    """
+    simulated = baseline.copy()
+    
+    # Apply changes
+    for param in parameters:
+        metric = param.get("metric")
+        change_pct = param.get("change_pct", 0.0)
+        
+        if metric in simulated:
+            simulated[metric] = simulated[metric] * (1 + (change_pct / 100.0))
+            
+    # Calculate baseline bottom line
+    baseline_revenue = baseline.get("revenue", 0)
+    baseline_cogs = baseline.get("cogs", 0)
+    baseline_opex = baseline.get("opex", 0)
+    baseline_net = baseline_revenue - baseline_cogs - baseline_opex
+    
+    # Calculate simulated bottom line
+    simulated_revenue = simulated.get("revenue", 0)
+    simulated_cogs = simulated.get("cogs", 0)
+    simulated_opex = simulated.get("opex", 0)
+    simulated_net = simulated_revenue - simulated_cogs - simulated_opex
+    
+    net_impact = simulated_net - baseline_net
+    net_impact_pct = (net_impact / abs(baseline_net) * 100) if baseline_net != 0 else 0
+    
+    return {
+        "baseline_state": {
+            "metrics": baseline,
+            "net_surplus": baseline_net
+        },
+        "simulated_state": {
+            "metrics": simulated,
+            "net_surplus": simulated_net
+        },
+        "impact": {
+            "net_impact_value": net_impact,
+            "net_impact_pct": net_impact_pct
+        }
+    }

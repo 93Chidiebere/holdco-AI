@@ -267,3 +267,12 @@ class VarianceRequest(BaseModel):
     actuals: List[Dict[str, Any]] = Field(description="Array of actual financial data")
     budgets: List[Dict[str, Any]] = Field(description="Array of budgeted financial data to compare against")
     metric: str = Field(default="revenue", description="The key metric to analyze for variance")
+
+class ScenarioParameter(BaseModel):
+    metric: str
+    change_pct: float = Field(description="Percentage change, e.g., 10.5 for a 10.5% increase, -5.0 for a 5% decrease")
+
+class ScenarioModelingRequest(BaseModel):
+    webhook_url: Optional[HttpUrl] = None
+    baseline: Dict[str, float] = Field(description="Current baseline financials, e.g., {'revenue': 100000, 'cogs': 40000, 'opex': 30000}")
+    parameters: List[ScenarioParameter] = Field(description="What-if adjustments to apply to the baseline")

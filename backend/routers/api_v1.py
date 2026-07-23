@@ -129,6 +129,51 @@ async def submit_variance_job(
         "message": "Variance analysis job accepted and processing in background."
     }
 
+@router.post("/scenario-modeling", status_code=status.HTTP_202_ACCEPTED)
+async def submit_scenario_job(
+    request: schemas.ScenarioModelingRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+):
+    """
+    Submit a baseline state and parameters for what-if scenario modeling and AI insights.
+    Returns a Job ID immediately. Processing happens in the background.
+    """
+    # Convert Pydantic objects to dict for json serialization
+    params_dict = [p.dict() for p in request.parameters]
+    
+    job = models.AsyncJob(
+        holding_company_id=holding_company.id,
+        job_type="scenario_modeling",
+        status="pending",
+        payload=json.dumps({
+            "baseline": request.baseline, 
+            "parameters": params_dict,
+            "webhook_url": str(request.webhook_url) if request.webhook_url else None
+        }),
+        webhook_url=str(request.webhook_url) if request.webhook_url else None
+    )
+    
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    
+    from services.webhook_service import process_scenario_job
+    background_tasks.add_task(
+        process_scenario_job, 
+        job.id, 
+        str(request.webhook_url) if request.webhook_url else None,
+        request.baseline,
+        params_dict
+    )
+    
+    return {
+        "job_id": job.id,
+        "status": "accepted",
+        "message": "Scenario modeling job accepted and processing in background."
+    }
+
 @router.get("/jobs/{job_id}", response_model=schemas.AsyncJobResponse)
 def get_job_status(
     job_id: str,
