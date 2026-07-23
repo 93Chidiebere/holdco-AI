@@ -373,3 +373,48 @@ def perform_clustering(data_points: List[Dict[str, Any]], target_clusters: int) 
         "summary": summary,
         "clusters": clusters
     }
+
+def normalize_data(raw_data: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Cleans, standardizes, and normalizes a messy array of dictionaries.
+    Lowercases keys, converts string numbers to floats, trims whitespace.
+    """
+    if not raw_data:
+        return {"error": "No raw data provided"}
+        
+    normalized_records = []
+    keys_standardized = set()
+    type_conversions = 0
+    
+    for row in raw_data:
+        clean_row = {}
+        for k, v in row.items():
+            # Standardize key: lowercase, strip whitespace, replace spaces with underscores
+            clean_k = str(k).lower().strip().replace(" ", "_")
+            if clean_k != k:
+                keys_standardized.add(k)
+                
+            clean_v = v
+            # Standardize value: trim strings, attempt float conversion for numeric strings
+            if isinstance(v, str):
+                clean_v = v.strip()
+                # Attempt to parse numbers
+                if clean_v.replace('.', '', 1).isdigit() or (clean_v.startswith('-') and clean_v[1:].replace('.', '', 1).isdigit()):
+                    try:
+                        clean_v = float(clean_v)
+                        type_conversions += 1
+                    except ValueError:
+                        pass
+                        
+            clean_row[clean_k] = clean_v
+            
+        normalized_records.append(clean_row)
+        
+    return {
+        "summary": {
+            "total_records_processed": len(raw_data),
+            "keys_standardized_count": len(keys_standardized),
+            "type_conversions_made": type_conversions
+        },
+        "normalized_data": normalized_records
+    }

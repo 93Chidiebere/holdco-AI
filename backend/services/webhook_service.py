@@ -357,6 +357,48 @@ def process_cluster_job(job_id: str, webhook_url: str | None, data_points: List[
     finally:
         db.close()
 
+def process_normalize_job(job_id: str, webhook_url: str | None, raw_data: List[Dict[str, Any]]):
+    """
+    Background worker that runs data normalization and LLM quality insights.
+    """
+    db: Session = SessionLocal()
+    try:
+        job = db.query(models.AsyncJob).filter(models.AsyncJob.id == job_id).first()
+        if not job:
+            return
+            
+        job.status = "processing"
+        db.commit()
+        
+        # 1. Run Math Engine / Rule Engine
+        from services.analysis_engine import normalize_data
+        normalized_output = normalize_data(raw_data)
+        
+        # 2. Run LLM Engine (Gemini)
+        from services.llm_orchestrator import generate_normalization_insights
+        final_insights = generate_normalization_insights(normalized_output)
+        
+        # 3. Save Results
+        job.result = json.dumps(final_insights)
+        job.status = "completed"
+        db.commit()
+        
+        # 4. Deliver Webhook
+        if webhook_url:
+            deliver_webhook(webhook_url, job_id, "completed", final_insights, job, db)
+            
+    except Exception as e:
+        print(f"Error in process_normalize_job: {e}")
+        job = db.query(models.AsyncJob).filter(models.AsyncJob.id == job_id).first()
+        if job:
+            job.status = "failed"
+            job.error = str(e)
+            db.commit()
+            if webhook_url:
+                deliver_webhook(webhook_url, job_id, "failed", {"error": str(e)}, job, db)
+    finally:
+        db.close()
+
 def deliver_webhook(url: str, job_id: str, status: str, data: dict, job: models.AsyncJob, db: Session):
     payload = {
         "job_id": job_id,

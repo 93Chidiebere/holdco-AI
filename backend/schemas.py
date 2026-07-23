@@ -314,3 +314,7 @@ class ClusterAnalysisRequest(BaseModel):
     webhook_url: Optional[HttpUrl] = None
     target_clusters: int = Field(default=3, description="Number of clusters to group the data into")
     data_points: List[DataPoint] = Field(description="Array of data points with features to be clustered")
+
+class NormalizeRequest(BaseModel):
+    webhook_url: Optional[HttpUrl] = None
+    raw_data: List[Dict[str, Any]] = Field(description="Array of messy, unstructured data records to normalize")

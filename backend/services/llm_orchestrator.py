@@ -445,3 +445,55 @@ def generate_cluster_insights(cluster_data: Dict[str, Any]) -> Dict[str, Any]:
         result = cluster_data.copy()
         result["llm_interpretation"] = {"error": str(e)}
         return result
+
+def generate_normalization_insights(normalized_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Takes the output of the data normalization engine and generates an insight report on data quality.
+    """
+    if not normalized_data or "error" in normalized_data:
+        return normalized_data
+        
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        prompt = f"""
+        You are an expert Data Engineer AI for HoldCo AI.
+        I have run a deterministic data normalization script on a messy dataset.
+        
+        Normalization Summary:
+        {json.dumps(normalized_data.get('summary'), indent=2)}
+        
+        Please provide a concise analysis of the data quality based on what had to be fixed.
+        You MUST return your response as a valid JSON object.
+        Do not include any markdown formatting like ```json. Just raw JSON.
+        
+        Structure:
+        {{
+            "data_quality_assessment": "A 1-2 sentence assessment of how dirty the original data was.",
+            "recommendation": "One clear recommendation for the data provider to improve their upstream data hygiene."
+        }}
+        """
+
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.GenerationConfig(
+                response_mime_type="application/json",
+            )
+        )
+        
+        try:
+            insight = json.loads(response.text)
+            result = normalized_data.copy()
+            result["llm_interpretation"] = insight
+            return result
+        except json.JSONDecodeError:
+            print("Failed to decode LLM response as JSON")
+            result = normalized_data.copy()
+            result["llm_interpretation"] = {"error": "Failed to decode interpretation"}
+            return result
+            
+    except Exception as e:
+        print(f"Error calling Gemini for normalization analysis: {e}")
+        result = normalized_data.copy()
+        result["llm_interpretation"] = {"error": str(e)}
+        return result
