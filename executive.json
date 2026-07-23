@@ -1,0 +1,23 @@
+{
+  "timeframe": "Q3 2026",
+  "insights": [
+    {
+      "type": "opportunity",
+      "severity": "high",
+      "title": "High ROI in AgriGrow Expansion",
+      "description": "Allocating capital to AgriGrow yields 18.5% ROI with a very low risk score."
+    },
+    {
+      "type": "risk",
+      "severity": "critical",
+      "title": "Churn Spike in FinServe",
+      "description": "We predict 15 high-risk enterprise customers might churn next month due to prolonged platform inactivity."
+    },
+    {
+      "type": "anomaly",
+      "severity": "medium",
+      "title": "Logistics OpEx Spike",
+      "description": "Global Logistics Co saw a 12% unexpected increase in operational expenses."
+    }
+  ]
+}

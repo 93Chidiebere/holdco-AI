@@ -1,0 +1,7 @@
+{
+  "customers": [
+    {"customer_id": "C-1001", "tenure_months": 24, "last_active_days_ago": 45, "historical_spend": 12000, "usage_score": 3.5},
+    {"customer_id": "C-1002", "tenure_months": 3, "last_active_days_ago": 2, "historical_spend": 500, "usage_score": 8.0},
+    {"customer_id": "C-1003", "tenure_months": 36, "last_active_days_ago": 90, "historical_spend": 45000, "usage_score": 1.2}
+  ]
+}

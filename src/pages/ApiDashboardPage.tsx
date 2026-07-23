@@ -120,8 +120,8 @@ const CapitalAllocationVisualizer = ({ result }: { result: any }) => {
           <div className="space-y-2">
             {data.allocations.map((alloc: any, idx: number) => (
               <div key={idx} className="flex justify-between items-center text-sm border-b pb-1">
-                <span>{alloc.project_id}</span>
-                <span className="font-medium text-emerald-600">${alloc.cost.toLocaleString()}</span>
+                <span>{alloc.unit_name || alloc.unit_id}</span>
+                <span className="font-medium text-emerald-600">${(alloc.allocated || 0).toLocaleString()}</span>
               </div>
             ))}
           </div>
