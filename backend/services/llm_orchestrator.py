@@ -236,3 +236,56 @@ def generate_scenario_insights(scenario_data: Dict[str, Any]) -> Dict[str, Any]:
         result = scenario_data.copy()
         result["llm_interpretation"] = {"error": str(e)}
         return result
+
+def generate_capital_insights(allocation_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Takes algorithmic capital allocation and uses Gemini to generate an executive-level summary and justification.
+    """
+    if not allocation_data or "error" in allocation_data:
+        return allocation_data
+        
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        prompt = f"""
+        You are an expert Chief Financial Officer (CFO) AI for HoldCo AI.
+        I have run a mathematical optimization for capital allocation across subsidiaries based on their ROI and Risk profiles.
+        
+        Allocation Results:
+        {json.dumps(allocation_data, indent=2)}
+        
+        Please provide a definitive executive recommendation. 
+        You MUST return your response as a valid JSON object.
+        Do not include any markdown formatting like ```json. Just raw JSON.
+        
+        Structure:
+        {{
+            "executive_summary": "A 2-3 sentence executive summary explaining WHERE the capital was deployed and WHY it is the optimal move.",
+            "risk_assessment": "A brief assessment of the risk profile of this allocation.",
+            "next_steps": "One clear directive for the board or subsidiaries regarding this capital deployment."
+        }}
+        """
+
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.GenerationConfig(
+                response_mime_type="application/json",
+            )
+        )
+        
+        try:
+            insight = json.loads(response.text)
+            result = allocation_data.copy()
+            result["llm_interpretation"] = insight
+            return result
+        except json.JSONDecodeError:
+            print("Failed to decode LLM response as JSON")
+            result = allocation_data.copy()
+            result["llm_interpretation"] = {"error": "Failed to decode interpretation"}
+            return result
+            
+    except Exception as e:
+        print(f"Error calling Gemini for capital allocation: {e}")
+        result = allocation_data.copy()
+        result["llm_interpretation"] = {"error": str(e)}
+        return result

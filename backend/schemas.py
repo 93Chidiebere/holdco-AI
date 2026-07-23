@@ -276,3 +276,16 @@ class ScenarioModelingRequest(BaseModel):
     webhook_url: Optional[HttpUrl] = None
     baseline: Dict[str, float] = Field(description="Current baseline financials, e.g., {'revenue': 100000, 'cogs': 40000, 'opex': 30000}")
     parameters: List[ScenarioParameter] = Field(description="What-if adjustments to apply to the baseline")
+
+class UnitCapitalRequest(BaseModel):
+    unit_id: str
+    unit_name: str
+    cash_reserve: float
+    roi_pct: float
+    risk_score: float = Field(description="1-10 scale where 10 is highest risk")
+    requested_capital: float
+
+class CapitalAllocationRequest(BaseModel):
+    webhook_url: Optional[HttpUrl] = None
+    total_available_capital: float
+    units: List[UnitCapitalRequest]

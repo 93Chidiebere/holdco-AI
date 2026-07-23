@@ -220,3 +220,54 @@ def simulate_scenario(baseline: Dict[str, float], parameters: List[Dict[str, Any
             "net_impact_pct": net_impact_pct
         }
     }
+
+def optimize_capital_allocation(total_available: float, units: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Takes total available capital and an array of units with ROI and Risk scores.
+    Uses a greedy knapsack-like heuristic ranking by (ROI / Risk) to allocate capital.
+    """
+    if not units:
+        return {"error": "No units provided for allocation."}
+        
+    # Calculate a score for each unit: (ROI / Risk). Higher is better.
+    # If risk is 0, add a small epsilon to avoid division by zero.
+    for u in units:
+        risk = max(float(u.get('risk_score', 1)), 0.1)
+        roi = float(u.get('roi_pct', 0))
+        u['score'] = roi / risk
+        u['allocated'] = 0.0
+        
+    # Sort units by score descending
+    sorted_units = sorted(units, key=lambda x: x['score'], reverse=True)
+    
+    remaining_capital = total_available
+    allocations = []
+    
+    for u in sorted_units:
+        requested = float(u.get('requested_capital', 0))
+        if requested <= 0:
+            continue
+            
+        if remaining_capital <= 0:
+            break
+            
+        # Allocate up to the requested amount or whatever is remaining
+        amount_to_allocate = min(requested, remaining_capital)
+        u['allocated'] = amount_to_allocate
+        remaining_capital -= amount_to_allocate
+        
+        allocations.append({
+            "unit_id": u.get("unit_id"),
+            "unit_name": u.get("unit_name"),
+            "requested": requested,
+            "allocated": amount_to_allocate,
+            "roi_pct": u.get("roi_pct"),
+            "risk_score": u.get("risk_score")
+        })
+        
+    return {
+        "total_available": total_available,
+        "total_allocated": total_available - remaining_capital,
+        "remaining_unallocated": remaining_capital,
+        "allocations": allocations
+    }

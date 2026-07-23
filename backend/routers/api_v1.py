@@ -174,6 +174,50 @@ async def submit_scenario_job(
         "message": "Scenario modeling job accepted and processing in background."
     }
 
+@router.post("/capital-allocation", status_code=status.HTTP_202_ACCEPTED)
+async def submit_capital_job(
+    request: schemas.CapitalAllocationRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+):
+    """
+    Submit capital reserves and unit ROI/Risk for optimal capital allocation.
+    Returns a Job ID immediately. Processing happens in the background.
+    """
+    units_dict = [u.dict() for u in request.units]
+    
+    job = models.AsyncJob(
+        holding_company_id=holding_company.id,
+        job_type="capital_allocation",
+        status="pending",
+        payload=json.dumps({
+            "total_available_capital": request.total_available_capital, 
+            "units": units_dict,
+            "webhook_url": str(request.webhook_url) if request.webhook_url else None
+        }),
+        webhook_url=str(request.webhook_url) if request.webhook_url else None
+    )
+    
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    
+    from services.webhook_service import process_capital_job
+    background_tasks.add_task(
+        process_capital_job, 
+        job.id, 
+        str(request.webhook_url) if request.webhook_url else None,
+        request.total_available_capital,
+        units_dict
+    )
+    
+    return {
+        "job_id": job.id,
+        "status": "accepted",
+        "message": "Capital allocation job accepted and processing in background."
+    }
+
 @router.get("/jobs/{job_id}", response_model=schemas.AsyncJobResponse)
 def get_job_status(
     job_id: str,
