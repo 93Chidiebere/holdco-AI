@@ -325,3 +325,51 @@ def calculate_churn_risk(customers: List[Dict[str, Any]]) -> Dict[str, Any]:
         },
         "customer_profiles": analyzed_customers
     }
+
+def perform_clustering(data_points: List[Dict[str, Any]], target_clusters: int) -> Dict[str, Any]:
+    """
+    A lightweight, deterministic heuristic to group data points into clusters based on magnitude.
+    For production, this would use a robust K-Means from scikit-learn.
+    """
+    if not data_points:
+        return {"error": "No data points provided"}
+        
+    # Calculate a magnitude score for each point
+    for dp in data_points:
+        features = dp.get("features", [])
+        # Magnitude is just sum of features for simplistic clustering
+        magnitude = sum(features) if features else 0
+        dp["_magnitude"] = magnitude
+        
+    # Sort by magnitude to group them
+    sorted_points = sorted(data_points, key=lambda x: x["_magnitude"])
+    
+    # Divide into roughly equal sized buckets
+    clusters = {}
+    for i in range(target_clusters):
+        clusters[f"cluster_{i+1}"] = []
+        
+    chunk_size = max(1, len(sorted_points) // target_clusters)
+    
+    for idx, point in enumerate(sorted_points):
+        # Determine which cluster index this belongs to
+        cluster_idx = min(idx // chunk_size, target_clusters - 1)
+        cluster_name = f"cluster_{cluster_idx+1}"
+        
+        # Clean up internal metadata before output
+        out_point = point.copy()
+        del out_point["_magnitude"]
+        
+        clusters[cluster_name].append(out_point)
+        
+    # Calculate cluster summaries
+    summary = {}
+    for c_name, c_data in clusters.items():
+        summary[c_name] = {
+            "size": len(c_data)
+        }
+        
+    return {
+        "summary": summary,
+        "clusters": clusters
+    }

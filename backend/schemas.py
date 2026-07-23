@@ -305,3 +305,12 @@ class CustomerRecord(BaseModel):
 class PredictiveChurnRequest(BaseModel):
     webhook_url: Optional[HttpUrl] = None
     customers: List[CustomerRecord] = Field(description="Array of customer data for churn prediction")
+
+class DataPoint(BaseModel):
+    entity_id: str
+    features: List[float] = Field(description="Array of numerical features for this entity")
+
+class ClusterAnalysisRequest(BaseModel):
+    webhook_url: Optional[HttpUrl] = None
+    target_clusters: int = Field(default=3, description="Number of clusters to group the data into")
+    data_points: List[DataPoint] = Field(description="Array of data points with features to be clustered")

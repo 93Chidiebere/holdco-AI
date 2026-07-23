@@ -302,6 +302,50 @@ async def submit_churn_job(
         "message": "Predictive churn job accepted and processing in background."
     }
 
+@router.post("/cluster-analysis", status_code=status.HTTP_202_ACCEPTED)
+async def submit_cluster_job(
+    request: schemas.ClusterAnalysisRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+):
+    """
+    Submit arbitrary numerical feature data to be clustered, with AI persona assignment.
+    Returns a Job ID immediately. Processing happens in the background.
+    """
+    data_points_dict = [dp.dict() for dp in request.data_points]
+    
+    job = models.AsyncJob(
+        holding_company_id=holding_company.id,
+        job_type="cluster_analysis",
+        status="pending",
+        payload=json.dumps({
+            "target_clusters": request.target_clusters,
+            "data_points": data_points_dict,
+            "webhook_url": str(request.webhook_url) if request.webhook_url else None
+        }),
+        webhook_url=str(request.webhook_url) if request.webhook_url else None
+    )
+    
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    
+    from services.webhook_service import process_cluster_job
+    background_tasks.add_task(
+        process_cluster_job, 
+        job.id, 
+        str(request.webhook_url) if request.webhook_url else None,
+        data_points_dict,
+        request.target_clusters
+    )
+    
+    return {
+        "job_id": job.id,
+        "status": "accepted",
+        "message": "Cluster analysis job accepted and processing in background."
+    }
+
 @router.get("/jobs/{job_id}", response_model=schemas.AsyncJobResponse)
 def get_job_status(
     job_id: str,

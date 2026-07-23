@@ -389,3 +389,59 @@ def generate_churn_insights(churn_data: Dict[str, Any]) -> Dict[str, Any]:
         result = churn_data.copy()
         result["llm_interpretation"] = {"error": str(e)}
         return result
+
+def generate_cluster_insights(cluster_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Takes algorithmically clustered data and uses Gemini to assign persona definitions to each cluster.
+    """
+    if not cluster_data or "error" in cluster_data:
+        return cluster_data
+        
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        prompt = f"""
+        You are an expert Data Scientist AI for HoldCo AI.
+        I have grouped a dataset into distinct clusters based on their feature magnitudes.
+        
+        Cluster Summary:
+        {json.dumps(cluster_data.get('summary'), indent=2)}
+        
+        Sample data points within clusters:
+        {json.dumps({k: v[:2] for k,v in cluster_data.get('clusters', {{}}).items()}, indent=2)}
+        
+        Please analyze the characteristics of each cluster and assign them a recognizable 'Persona'.
+        You MUST return your response as a valid JSON object.
+        Do not include any markdown formatting like ```json. Just raw JSON.
+        
+        Structure:
+        {{
+            "cluster_1": {{"persona_name": "e.g. High-Value Whales", "description": "Brief description"}},
+            "cluster_2": {{"persona_name": "e.g. Occasional Users", "description": "Brief description"}},
+            "overall_insight": "One overarching observation about the distribution of these clusters."
+        }}
+        """
+
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.GenerationConfig(
+                response_mime_type="application/json",
+            )
+        )
+        
+        try:
+            insight = json.loads(response.text)
+            result = cluster_data.copy()
+            result["llm_interpretation"] = insight
+            return result
+        except json.JSONDecodeError:
+            print("Failed to decode LLM response as JSON")
+            result = cluster_data.copy()
+            result["llm_interpretation"] = {"error": "Failed to decode interpretation"}
+            return result
+            
+    except Exception as e:
+        print(f"Error calling Gemini for cluster analysis: {e}")
+        result = cluster_data.copy()
+        result["llm_interpretation"] = {"error": str(e)}
+        return result
