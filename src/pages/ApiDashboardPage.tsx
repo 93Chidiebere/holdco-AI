@@ -265,7 +265,7 @@ export default function ApiDashboardPage() {
                           {job.job_type.replace('_', ' ')}
                         </CardTitle>
                         <CardDescription className="text-xs font-mono mt-1">
-                          ID: {job.id.substring(0, 8)} • {new Date(job.created_at).toLocaleString()}
+                          ID: {job.id.substring(0, 8)} • {new Date(job.created_at + (job.created_at.endsWith('Z') ? '' : 'Z')).toLocaleString()}
                         </CardDescription>
                       </div>
                     </div>
