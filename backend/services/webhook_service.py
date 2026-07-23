@@ -1,0 +1,94 @@
+import requests
+import json
+import time
+from sqlalchemy.orm import Session
+from database import SessionLocal
+import models
+from services.analysis_engine import detect_anomalies
+from services.llm_orchestrator import generate_insights_from_anomalies
+from datetime import datetime
+
+MAX_RETRIES = 3
+RETRY_DELAY = 5 # seconds
+
+def process_analysis_job(job_id: str):
+    """
+    Background task to process the anomaly detection job.
+    Uses its own DB session since it runs async.
+    """
+    db: Session = SessionLocal()
+    try:
+        job = db.query(models.AsyncJob).filter(models.AsyncJob.id == job_id).first()
+        if not job:
+            return
+            
+        job.status = "processing"
+        db.commit()
+        
+        try:
+            payload = json.loads(job.payload)
+            data = payload.get("data", [])
+            webhook_url = payload.get("webhook_url")
+            
+            # 1. Deterministic Math
+            anomalies = detect_anomalies(data)
+            
+            # 2. LLM Orchestration
+            insights = []
+            if anomalies:
+                insights = generate_insights_from_anomalies(anomalies)
+                
+            # Combine Results
+            result_data = {
+                "anomalies_detected": len(anomalies),
+                "anomalies": anomalies,
+                "insights": insights
+            }
+            
+            job.result = json.dumps(result_data)
+            job.status = "completed"
+            job.completed_at = datetime.utcnow()
+            db.commit()
+            
+            # 3. Deliver via Webhook if provided
+            if webhook_url:
+                deliver_webhook(webhook_url, job_id, "completed", result_data, job, db)
+                
+        except Exception as e:
+            job.status = "failed"
+            job.error = str(e)
+            job.completed_at = datetime.utcnow()
+            db.commit()
+            
+            if job.webhook_url:
+                deliver_webhook(job.webhook_url, job_id, "failed", {"error": str(e)}, job, db)
+                
+    finally:
+        db.close()
+
+def deliver_webhook(url: str, job_id: str, status: str, data: dict, job: models.AsyncJob, db: Session):
+    payload = {
+        "job_id": job_id,
+        "status": status,
+        "data": data
+    }
+    
+    headers = {"Content-Type": "application/json"}
+    
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            if response.status_code in (200, 201, 202, 204):
+                # Success
+                break
+            else:
+                # Log failure
+                print(f"Webhook delivery failed with status {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"Webhook request exception: {e}")
+            
+        job.retry_count = attempt
+        db.commit()
+        
+        if attempt < MAX_RETRIES:
+            time.sleep(RETRY_DELAY)

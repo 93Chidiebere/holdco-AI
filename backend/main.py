@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import models
 from database import engine
-from routers import auth, subsidiaries, kpis, scenarios, reports, insights, recommendations, seed, portal, dashboard, system
+from routers import auth, subsidiaries, kpis, scenarios, reports, insights, recommendations, seed, portal, dashboard, system, api_keys, api_v1
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -27,6 +27,8 @@ app.include_router(seed.router)
 app.include_router(portal.router)
 app.include_router(dashboard.router)
 app.include_router(system.router)
+app.include_router(api_keys.router)
+app.include_router(api_v1.router)
 
 @app.get("/")
 def read_root():

@@ -205,3 +205,50 @@ class NormalizedDataSubmit(BaseModel):
     reporting_period: str
     rows: List[NormalizedDataSubmitRow]
 
+class APIKeyBase(BaseModel):
+    name: str
+
+class APIKeyCreate(APIKeyBase):
+    pass
+
+class APIKeyResponse(APIKeyBase):
+    id: str
+    prefix: str
+    created_at: datetime
+    last_used_at: Optional[datetime] = None
+    is_active: bool
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+class APIKeyWithSecret(APIKeyResponse):
+    key: str # Only returned once upon creation
+
+class AsyncJobResponse(BaseModel):
+    id: str
+    job_type: str
+    status: str
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    result: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+class AnalyzePayloadItem(BaseModel):
+    unit_id: str
+    unit_name: str
+    date: str
+    total_inflow: float
+    total_outflow: float
+    cash_reserve: float
+    primary_kpi: Optional[float] = None
+    secondary_kpi: Optional[float] = None
+
+class AnalyzePayload(BaseModel):
+    webhook_url: Optional[str] = None
+    data: List[AnalyzePayloadItem]
+

@@ -182,3 +182,32 @@ class FXRate(Base):
     rate = Column(Float)
     date = Column(DateTime, default=datetime.utcnow)
 
+class APIKey(Base):
+    __tablename__ = "api_keys"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    holding_company_id = Column(String, ForeignKey("holding_companies.id"))
+    name = Column(String) # e.g., "Production ERP Key"
+    key_hash = Column(String, unique=True, index=True)
+    prefix = Column(String) # first 8 chars for identification
+    created_at = Column(DateTime, default=datetime.utcnow)
+    last_used_at = Column(DateTime, nullable=True)
+    is_active = Column(Boolean, default=True)
+
+    holding_company = relationship("HoldingCompany")
+
+class AsyncJob(Base):
+    __tablename__ = "async_jobs"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    holding_company_id = Column(String, ForeignKey("holding_companies.id"))
+    job_type = Column(String) # e.g., "anomaly_detection"
+    status = Column(String, default="pending") # pending, processing, completed, failed
+    payload = Column(Text) # The input data (JSON string)
+    result = Column(Text, nullable=True) # The output data (JSON string)
+    error = Column(Text, nullable=True)
+    webhook_url = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    retry_count = Column(Integer, default=0)
+
+    holding_company = relationship("HoldingCompany")
+
