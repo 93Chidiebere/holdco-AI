@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 import models
 import schemas
-from routers.auth import get_current_user
+from auth import get_current_user
 import secrets
 import hashlib
 from datetime import datetime
