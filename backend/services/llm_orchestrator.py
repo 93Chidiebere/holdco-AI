@@ -337,3 +337,55 @@ def generate_executive_summary(timeframe: str, insights: List[Dict[str, Any]]) -
     except Exception as e:
         print(f"Error calling Gemini for executive summary: {e}")
         return {"error": str(e)}
+
+def generate_churn_insights(churn_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Takes algorithmic churn risk scores and uses Gemini to generate retention strategies.
+    """
+    if not churn_data or "error" in churn_data:
+        return churn_data
+        
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        prompt = f"""
+        You are an expert Data Scientist and Customer Success AI for HoldCo AI.
+        I have run a heuristic model to predict customer churn risk based on tenure, usage, and inactivity.
+        
+        Churn Risk Results:
+        {json.dumps(churn_data.get('summary'), indent=2)}
+        
+        Please provide a concise analysis of this churn risk and a high-level retention strategy.
+        You MUST return your response as a valid JSON object.
+        Do not include any markdown formatting like ```json. Just raw JSON.
+        
+        Structure:
+        {{
+            "risk_analysis": "A 1-2 sentence analysis of the overall churn profile.",
+            "retention_strategy": "One clear, actionable retention strategy tailored for the 'High Risk' tier."
+        }}
+        """
+
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.GenerationConfig(
+                response_mime_type="application/json",
+            )
+        )
+        
+        try:
+            insight = json.loads(response.text)
+            result = churn_data.copy()
+            result["llm_interpretation"] = insight
+            return result
+        except json.JSONDecodeError:
+            print("Failed to decode LLM response as JSON")
+            result = churn_data.copy()
+            result["llm_interpretation"] = {"error": "Failed to decode interpretation"}
+            return result
+            
+    except Exception as e:
+        print(f"Error calling Gemini for churn analysis: {e}")
+        result = churn_data.copy()
+        result["llm_interpretation"] = {"error": str(e)}
+        return result

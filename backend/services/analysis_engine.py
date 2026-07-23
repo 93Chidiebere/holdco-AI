@@ -271,3 +271,57 @@ def optimize_capital_allocation(total_available: float, units: List[Dict[str, An
         "remaining_unallocated": remaining_capital,
         "allocations": allocations
     }
+
+def calculate_churn_risk(customers: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Heuristic algorithm to predict churn risk for an array of customers.
+    High inactivity, low usage, and low tenure increase the risk profile.
+    """
+    if not customers:
+        return {"error": "No customers provided"}
+        
+    analyzed_customers = []
+    high_risk_count = 0
+    medium_risk_count = 0
+    low_risk_count = 0
+    
+    for c in customers:
+        tenure = float(c.get("tenure_months", 1))
+        inactivity = float(c.get("last_active_days_ago", 0))
+        usage = float(c.get("usage_score", 5)) # 1-10
+        
+        # Simple heuristic formula for a risk score out of 100
+        # More inactivity -> higher risk
+        # Lower usage -> higher risk 
+        # Lower tenure -> slightly higher risk (less established)
+        
+        inactivity_factor = min(inactivity / 30.0, 1.0) * 40 # Up to 40 points
+        usage_factor = (10 - usage) / 10.0 * 40              # Up to 40 points
+        tenure_factor = max(1.0 - (tenure / 24.0), 0) * 20   # Up to 20 points
+        
+        risk_score = min(inactivity_factor + usage_factor + tenure_factor, 100.0)
+        
+        if risk_score > 70:
+            tier = "High"
+            high_risk_count += 1
+        elif risk_score > 40:
+            tier = "Medium"
+            medium_risk_count += 1
+        else:
+            tier = "Low"
+            low_risk_count += 1
+            
+        c_out = c.copy()
+        c_out["churn_risk_score"] = round(risk_score, 2)
+        c_out["churn_risk_tier"] = tier
+        analyzed_customers.append(c_out)
+        
+    return {
+        "summary": {
+            "total_analyzed": len(customers),
+            "high_risk": high_risk_count,
+            "medium_risk": medium_risk_count,
+            "low_risk": low_risk_count
+        },
+        "customer_profiles": analyzed_customers
+    }

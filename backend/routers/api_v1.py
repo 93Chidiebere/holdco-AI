@@ -260,6 +260,48 @@ async def submit_executive_summary_job(
         "message": "Executive summary synthesis job accepted and processing in background."
     }
 
+@router.post("/predictive-churn", status_code=status.HTTP_202_ACCEPTED)
+async def submit_churn_job(
+    request: schemas.PredictiveChurnRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+):
+    """
+    Submit customer data for churn risk prediction and retention strategy generation.
+    Returns a Job ID immediately. Processing happens in the background.
+    """
+    customers_dict = [c.dict() for c in request.customers]
+    
+    job = models.AsyncJob(
+        holding_company_id=holding_company.id,
+        job_type="predictive_churn",
+        status="pending",
+        payload=json.dumps({
+            "customers": customers_dict,
+            "webhook_url": str(request.webhook_url) if request.webhook_url else None
+        }),
+        webhook_url=str(request.webhook_url) if request.webhook_url else None
+    )
+    
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    
+    from services.webhook_service import process_churn_job
+    background_tasks.add_task(
+        process_churn_job, 
+        job.id, 
+        str(request.webhook_url) if request.webhook_url else None,
+        customers_dict
+    )
+    
+    return {
+        "job_id": job.id,
+        "status": "accepted",
+        "message": "Predictive churn job accepted and processing in background."
+    }
+
 @router.get("/jobs/{job_id}", response_model=schemas.AsyncJobResponse)
 def get_job_status(
     job_id: str,
