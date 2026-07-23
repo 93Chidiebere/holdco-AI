@@ -289,3 +289,51 @@ def generate_capital_insights(allocation_data: Dict[str, Any]) -> Dict[str, Any]
         result = allocation_data.copy()
         result["llm_interpretation"] = {"error": str(e)}
         return result
+
+def generate_executive_summary(timeframe: str, insights: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Takes an array of raw insights generated over a period and uses Gemini to synthesize a board-level memo.
+    """
+    if not insights:
+        return {"error": "No insights provided to summarize."}
+        
+    try:
+        model = genai.GenerativeModel('gemini-1.5-pro') # Use Pro for better complex synthesis
+        
+        prompt = f"""
+        You are an expert Chief Financial Officer (CFO) AI for HoldCo AI.
+        I am providing you with a raw feed of all the AI-generated financial and operational insights from our subsidiaries over the timeframe: {timeframe}.
+        
+        Raw Insights Feed:
+        {json.dumps(insights, indent=2)}
+        
+        Please synthesize these individual data points into a high-level executive board memo.
+        You MUST return your response as a valid JSON object.
+        Do not include any markdown formatting like ```json. Just raw JSON.
+        
+        Structure:
+        {{
+            "timeframe": "{timeframe}",
+            "memo_title": "A compelling title for the board memo",
+            "executive_summary": "A 3-paragraph executive summary synthesizing the overall health, major risks, and key opportunities of the holding company.",
+            "key_bullet_points": ["Bullet 1", "Bullet 2", "Bullet 3"],
+            "board_level_recommendation": "One sweeping, strategic directive for the board of directors."
+        }}
+        """
+
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.GenerationConfig(
+                response_mime_type="application/json",
+            )
+        )
+        
+        try:
+            return json.loads(response.text)
+        except json.JSONDecodeError:
+            print("Failed to decode LLM response as JSON")
+            return {"error": "Failed to decode executive summary"}
+            
+    except Exception as e:
+        print(f"Error calling Gemini for executive summary: {e}")
+        return {"error": str(e)}

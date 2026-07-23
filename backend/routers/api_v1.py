@@ -218,6 +218,48 @@ async def submit_capital_job(
         "message": "Capital allocation job accepted and processing in background."
     }
 
+@router.post("/executive-summary", status_code=status.HTTP_202_ACCEPTED)
+async def submit_executive_summary_job(
+    request: schemas.ExecutiveSummaryRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+):
+    """
+    Submit a batch of raw insights generated over a quarter to synthesize a board-level executive memo.
+    Returns a Job ID immediately. Processing happens in the background.
+    """
+    job = models.AsyncJob(
+        holding_company_id=holding_company.id,
+        job_type="executive_summary",
+        status="pending",
+        payload=json.dumps({
+            "timeframe": request.timeframe, 
+            "insights": request.insights,
+            "webhook_url": str(request.webhook_url) if request.webhook_url else None
+        }),
+        webhook_url=str(request.webhook_url) if request.webhook_url else None
+    )
+    
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    
+    from services.webhook_service import process_executive_summary_job
+    background_tasks.add_task(
+        process_executive_summary_job, 
+        job.id, 
+        str(request.webhook_url) if request.webhook_url else None,
+        request.timeframe,
+        request.insights
+    )
+    
+    return {
+        "job_id": job.id,
+        "status": "accepted",
+        "message": "Executive summary synthesis job accepted and processing in background."
+    }
+
 @router.get("/jobs/{job_id}", response_model=schemas.AsyncJobResponse)
 def get_job_status(
     job_id: str,
