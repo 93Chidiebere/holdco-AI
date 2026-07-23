@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -252,3 +252,12 @@ class AnalyzePayload(BaseModel):
     webhook_url: Optional[str] = None
     data: List[AnalyzePayloadItem]
 
+class AnalyzeRequest(BaseModel):
+    webhook_url: Optional[HttpUrl] = None
+    data: List[Dict[str, Any]]
+
+class ForecastRequest(BaseModel):
+    webhook_url: Optional[HttpUrl] = None
+    data: List[Dict[str, Any]]
+    forecast_periods: int = Field(default=3, description="Number of periods to forecast into the future")
+    metric: str = Field(default="revenue", description="The key metric to forecast (e.g., revenue, net_surplus)")

@@ -75,3 +75,55 @@ def detect_anomalies(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             })
 
     return anomalies
+
+def generate_forecast(data: List[Dict[str, Any]], metric: str, periods: int) -> Dict[str, Any]:
+    """
+    Takes historical time-series data and projects a specified metric forward
+    using linear regression (numpy polyfit).
+    """
+    if not data or len(data) < 2:
+        return {"error": "Not enough data points for forecasting. Need at least 2."}
+
+    df = pd.DataFrame(data)
+    
+    if 'date' not in df.columns or metric not in df.columns:
+        return {"error": f"Data must contain 'date' and '{metric}' columns."}
+        
+    df['date'] = pd.to_datetime(df['date'])
+    df = df.sort_values(by='date')
+    
+    # Convert dates to ordinal for linear regression
+    x = df['date'].map(pd.Timestamp.toordinal).values
+    y = df[metric].values
+    
+    # Fit line: y = mx + c
+    m, c = np.polyfit(x, y, 1)
+    
+    # Generate future dates
+    last_date = df['date'].iloc[-1]
+    # Estimate the frequency. Default to monthly if we can't tell
+    freq = pd.infer_freq(df['date']) or 'M'
+    
+    future_dates = pd.date_range(start=last_date, periods=periods + 1, freq=freq)[1:]
+    
+    future_x = future_dates.map(pd.Timestamp.toordinal).values
+    future_y = (m * future_x) + c
+    
+    historical = df[['date', metric]].copy()
+    historical['date'] = historical['date'].dt.strftime('%Y-%m-%d')
+    
+    forecasts = []
+    for i, date in enumerate(future_dates):
+        forecasts.append({
+            "date": date.strftime('%Y-%m-%d'),
+            "predicted_value": float(future_y[i])
+        })
+        
+    trend = "increasing" if m > 0 else "decreasing" if m < 0 else "flat"
+    
+    return {
+        "metric": metric,
+        "trend": trend,
+        "historical_data": historical.to_dict('records'),
+        "forecast": forecasts
+    }

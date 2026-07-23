@@ -66,6 +66,48 @@ def process_analysis_job(job_id: str):
     finally:
         db.close()
 
+def process_forecast_job(job_id: str, webhook_url: str | None, payload_data: List[Dict[str, Any]], metric: str, periods: int):
+    """
+    Background worker that runs statistical forecast and LLM interpretation.
+    """
+    db: Session = SessionLocal()
+    try:
+        job = db.query(models.AsyncJob).filter(models.AsyncJob.id == job_id).first()
+        if not job:
+            return
+            
+        job.status = "processing"
+        db.commit()
+        
+        # 1. Run Math Engine (Pandas Polyfit)
+        from services.analysis_engine import generate_forecast
+        forecast_output = generate_forecast(payload_data, metric, periods)
+        
+        # 2. Run LLM Engine (Gemini)
+        from services.llm_orchestrator import generate_forecast_insights
+        final_insights = generate_forecast_insights(forecast_output)
+        
+        # 3. Save Results
+        job.result = json.dumps(final_insights)
+        job.status = "completed"
+        db.commit()
+        
+        # 4. Deliver Webhook
+        if webhook_url:
+            deliver_webhook(webhook_url, job_id, "completed", final_insights, job, db)
+            
+    except Exception as e:
+        print(f"Error in process_forecast_job: {e}")
+        job = db.query(models.AsyncJob).filter(models.AsyncJob.id == job_id).first()
+        if job:
+            job.status = "failed"
+            job.error = str(e)
+            db.commit()
+            if webhook_url:
+                deliver_webhook(webhook_url, job_id, "failed", {"error": str(e)}, job, db)
+    finally:
+        db.close()
+
 def deliver_webhook(url: str, job_id: str, status: str, data: dict, job: models.AsyncJob, db: Session):
     payload = {
         "job_id": job_id,

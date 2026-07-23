@@ -45,6 +45,47 @@ def submit_analysis_job(
         "message": "Job accepted and is processing in the background."
     }
 
+@router.post("/forecast", status_code=status.HTTP_202_ACCEPTED)
+async def submit_forecast_job(
+    request: schemas.ForecastRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    holding_company: models.HoldingCompany = Depends(get_holding_company_from_api_key)
+):
+    """
+    Submit historical data for statistical forecasting and AI insights.
+    Returns a Job ID immediately. Processing happens in the background.
+    """
+    # Create the job
+    job = models.AsyncJob(
+        holding_company_id=holding_company.id,
+        job_type="forecast",
+        status="pending",
+        payload=json.dumps({"data": request.data, "webhook_url": str(request.webhook_url) if request.webhook_url else None}),
+        webhook_url=str(request.webhook_url) if request.webhook_url else None
+    )
+    
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    
+    # Send to background
+    from services.webhook_service import process_forecast_job
+    background_tasks.add_task(
+        process_forecast_job, 
+        job.id, 
+        str(request.webhook_url) if request.webhook_url else None,
+        request.data,
+        request.metric,
+        request.forecast_periods
+    )
+    
+    return {
+        "job_id": job.id,
+        "status": "accepted",
+        "message": "Forecast job accepted and processing in background."
+    }
+
 @router.get("/jobs/{job_id}", response_model=schemas.AsyncJobResponse)
 def get_job_status(
     job_id: str,
